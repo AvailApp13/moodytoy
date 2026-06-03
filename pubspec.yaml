@@ -1,0 +1,81 @@
+name: moodytoy
+description: Dating app with Bluetooth keyfob
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+  flutter: '>=3.22.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management + Navigation + DI
+  get: ^4.6.6
+
+  # Backend
+  supabase_flutter: ^2.5.0
+
+  # BLE
+  flutter_blue_plus: ^1.31.6
+
+  # GPS
+  geolocator: ^12.0.0
+
+  # Maps (Amap / Gaode — China)
+  amap_flutter_map: ^3.0.0
+  amap_flutter_location: ^3.0.0
+
+  # Push Notifications (China)
+  jpush_flutter: ^5.0.0
+
+  # Photos
+  image_picker: ^1.1.2
+  cached_network_image: ^3.3.1
+
+  # Permissions
+  permission_handler: ^11.3.1
+
+  # Biometrics (mock for MVP)
+  local_auth: ^2.3.0
+
+  # HTTP
+  dio: ^5.4.3
+
+  # Storage
+  shared_preferences: ^2.2.3
+
+  # Notifications
+  flutter_local_notifications: ^17.2.1
+
+  # Utils
+  intl: ^0.19.0
+  latlong2: ^0.9.1
+  flutter_svg: ^2.0.10
+  shimmer: ^3.0.0
+  timeago: ^3.6.1
+  flutter_dotenv: ^5.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  build_runner: ^2.4.9
+  json_serializable: ^6.8.0
+  flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.4.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - .env
+    - assets/images/
+    - assets/icons/
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/icon.png"
+  adaptive_icon_background: "#1A1A2E"
+  adaptive_icon_foreground: "assets/images/icon_fg.png"

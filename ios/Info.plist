@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>ru</string>
+	<key>CFBundleDisplayName</key>
+	<string>MoodyToy</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>moodytoy</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(FLUTTER_BUILD_NAME)</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleVersion</key>
+	<string>$(FLUTTER_BUILD_NUMBER)</string>
+
+	<!-- Geolocation -->
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Приложению нужна геолокация чтобы показывать тебя на карте другим пользователям</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Приложению нужна геолокация чтобы показывать тебя на карте</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Приложению нужна фоновая геолокация чтобы уведомлять о сближении с другими пользователями</string>
+
+	<!-- Bluetooth -->
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Bluetooth нужен для подключения брелока MoodyToy</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>Bluetooth нужен для подключения брелока MoodyToy</string>
+
+	<!-- Camera & Photos -->
+	<key>NSCameraUsageDescription</key>
+	<string>Камера нужна для съёмки фото профиля</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Доступ к фото нужен для загрузки фото профиля</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Сохранение фото в галерею</string>
+
+	<!-- Face ID -->
+	<key>NSFaceIDUsageDescription</key>
+	<string>Face ID используется для быстрого входа в приложение</string>
+
+	<!-- Background Modes -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+		<string>bluetooth-central</string>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
+
+	<!-- Launch -->
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	<key>UIMainStoryboardFile</key>
+	<string>Main</string>
+
+	<!-- Orientation -->
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+
+	<!-- Status Bar -->
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<false/>
+
+	<!-- Flutter -->
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
+	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
+
+	<!-- Amap -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
+</dict>
+</plist>
