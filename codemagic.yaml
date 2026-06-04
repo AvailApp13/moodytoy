@@ -44,6 +44,14 @@ workflows:
         script: |
           flutter build ipa --release \
             --export-options-plist=$HOME/export_options.plist
+          # Fix App.framework CFBundleIdentifier for Xcode 26
+          APP_FRAMEWORK=$(find build/ios -name "App.framework" -type d | head -1)
+          if [ -n "$APP_FRAMEWORK" ]; then
+            PLIST="$APP_FRAMEWORK/Info.plist"
+            if [ -f "$PLIST" ]; then
+              plutil -replace CFBundleIdentifier -string "com.moodytoy.app" "$PLIST" 2>/dev/null || true
+            fi
+          fi
 
     artifacts:
       - build/ios/ipa/*.ipa
