@@ -29,10 +29,9 @@ workflows:
       - name: Pod install
         script: cd ios && pod install --repo-update
 
-      - name: Build iOS for App Store
+      - name: Build IPA for App Store
         script: |
-          flutter build ipa --release \
-            --export-options-plist=/Users/builder/export_options.plist
+          flutter build ipa --release
 
     artifacts:
       - build/ios/ipa/*.ipa
@@ -40,9 +39,9 @@ workflows:
     publishing:
       app_store_connect:
         api_key: 72R277Q9ZH
+        key_id: 72R277Q9ZH
+        issuer_id: 69a6de82-0693-47e3-e053-5b8c7c11a4d1
         submit_to_testflight: true
-        beta_groups:
-          - App Store Connect Users
 
   ios-debug:
     name: iOS Build (no sign)
