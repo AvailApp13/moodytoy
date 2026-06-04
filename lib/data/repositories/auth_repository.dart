@@ -30,16 +30,20 @@ class AuthRepository {
       password: password,
     );
     if (response.user != null) {
-      await _client.from('users').insert({
-        'id': response.user!.id,
-        'email': email,
-        'name': email.split('@').first,
-        'face_verified': true,
-        'location_enabled': false,
-        'profile_private': false,
-        'tags': [],
-        'photos': [],
-      }).onConflict('id').ignore();
+      try {
+        await _client.from('users').insert({
+          'id': response.user!.id,
+          'email': email,
+          'name': email.split('@').first,
+          'face_verified': true,
+          'location_enabled': false,
+          'profile_private': false,
+          'tags': [],
+          'photos': [],
+        });
+      } catch (_) {
+        // Запись уже существует — игнорируем
+      }
     }
     return response;
   }
