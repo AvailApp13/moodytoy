@@ -16,27 +16,27 @@ workflows:
       - name: Regenerate iOS project
         script: |
           rm -rf ios/Runner.xcodeproj ios/Runner.xcworkspace ios/Podfile.lock ios/Pods
-          flutter create --platforms=ios --org com.moodytoy .
+          flutter create --platforms=ios --org com.moodytoy --project-name app .
           flutter pub get
 
-      - name: Set iOS deployment target to 14.0
+      - name: Fix bundle ID and deployment target
         script: |
+          # Исправить bundle ID если flutter create поставил неправильный
+          sed -i '' 's/PRODUCT_BUNDLE_IDENTIFIER = com.moodytoy.clone;/PRODUCT_BUNDLE_IDENTIFIER = com.moodytoy.app;/g' \
+            ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/PRODUCT_BUNDLE_IDENTIFIER = com.moodytoy.app.clone;/PRODUCT_BUNDLE_IDENTIFIER = com.moodytoy.app;/g' \
+            ios/Runner.xcodeproj/project.pbxproj
+          # iOS 14.0
           sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 12.0/IPHONEOS_DEPLOYMENT_TARGET = 14.0/g' \
             ios/Runner.xcodeproj/project.pbxproj
           sed -i '' "s/platform :ios, '12.0'/platform :ios, '14.0'/" ios/Podfile
           sed -i '' "s/# platform :ios, '12.0'/platform :ios, '14.0'/" ios/Podfile
+          # Team ID
+          sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = F2MD3735EJ;/g' \
+            ios/Runner.xcodeproj/project.pbxproj
 
-      - name: Set code signing
-        script: |
-          xcode-project use-profiles
-          # Отключить автоматическую подпись
-          sed -i '' 's/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/' \
-            ios/Runner.xcodeproj/project.pbxproj
-          # Установить Team ID
-          sed -i '' 's/DEVELOPMENT_TEAM = ""/DEVELOPMENT_TEAM = F2MD3735EJ/' \
-            ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/DEVELOPMENT_TEAM = ;/DEVELOPMENT_TEAM = F2MD3735EJ;/' \
-            ios/Runner.xcodeproj/project.pbxproj
+      - name: Apply code signing profiles
+        script: xcode-project use-profiles
 
       - name: Pod install
         script: cd ios && pod install --repo-update
