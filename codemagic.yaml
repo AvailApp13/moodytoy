@@ -9,6 +9,8 @@ workflows:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.moodytoy.app
+      groups:
+        - moodytoy
     scripts:
       - name: Get Flutter packages
         script: flutter pub get
@@ -51,5 +53,4 @@ workflows:
         api_key: QB9G5729CH
         key_id: QB9G5729CH
         issuer_id: 69a6de82-0693-47e3-e053-5b8c7c11a4d1
-        private_key: $APP_STORE_CONNECT_PRIVATE_KEY
         submit_to_testflight: true
