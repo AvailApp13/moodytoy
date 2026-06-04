@@ -4,7 +4,7 @@ workflows:
     max_build_duration: 60
     environment:
       flutter: 3.22.0
-      xcode: latest
+      xcode: 16.2
       cocoapods: default
     scripts:
       - name: Get Flutter packages
@@ -18,28 +18,20 @@ workflows:
 
       - name: Set iOS deployment target to 14.0
         script: |
-          # Исправить минимальную версию iOS в проекте
-          find ios -name "project.pbxproj" -exec \
-            sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 12.0/IPHONEOS_DEPLOYMENT_TARGET = 14.0/g' {} \;
-          find ios -name "project.pbxproj" -exec \
-            sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 13.0/IPHONEOS_DEPLOYMENT_TARGET = 14.0/g' {} \;
-          # Исправить Podfile
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 12.0/IPHONEOS_DEPLOYMENT_TARGET = 14.0/g' \
+            ios/Runner.xcodeproj/project.pbxproj
           sed -i '' "s/platform :ios, '12.0'/platform :ios, '14.0'/" ios/Podfile
-          sed -i '' "s/platform :ios, '13.0'/platform :ios, '14.0'/" ios/Podfile
-          # Добавить NSBonjourServices и NSLocalNetworkUsageDescription в Info.plist
-          plutil -insert NSBonjourServices -array ios/Runner/Info.plist 2>/dev/null || true
-          plutil -insert NSLocalNetworkUsageDescription \
-            -string "Нужен для поиска Bluetooth-брелока в локальной сети" \
-            ios/Runner/Info.plist 2>/dev/null || true
+          sed -i '' "s/# platform :ios, '12.0'/platform :ios, '14.0'/" ios/Podfile
 
       - name: Pod install
         script: cd ios && pod install --repo-update
 
-      - name: Build iOS simulator
-        script: flutter build ios --simulator --debug
+      - name: Build iOS (no codesign)
+        script: |
+          flutter build ios --release --no-codesign
 
     artifacts:
-      - build/ios/iphonesimulator/*.app
+      - build/ios/iphoneos/Runner.app
 
   android-workflow:
     name: Android Build
