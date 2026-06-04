@@ -16,6 +16,29 @@ workflows:
       - name: Flutter packages
         script: flutter pub get
 
+      - name: Recreate iOS project
+        script: |
+          # Сохраняем наш Info.plist со всеми разрешениями
+          cp ios/Runner/Info.plist /tmp/Info.plist
+          cp ios/Flutter/AppFrameworkInfo.plist /tmp/AppFrameworkInfo.plist
+
+          # Удаляем сломанный ios/ полностью
+          rm -rf ios/
+
+          # Flutter создаёт правильный ios/ с нуля
+          flutter create --platforms=ios --org com.moodytoy --project-name app .
+
+          # Восстанавливаем наш Info.plist (BLE, геолокация, камера и т.д.)
+          cp /tmp/Info.plist ios/Runner/Info.plist
+          cp /tmp/AppFrameworkInfo.plist ios/Flutter/AppFrameworkInfo.plist
+
+          # Прописываем Team ID и iOS 14
+          sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = F2MD3735EJ;/g' \
+            ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 12.0/IPHONEOS_DEPLOYMENT_TARGET = 14.0/g' \
+            ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' "s/platform :ios, '12.0'/platform :ios, '14.0'/" ios/Podfile
+
       - name: Apply code signing
         script: xcode-project use-profiles
 
