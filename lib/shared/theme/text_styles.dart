@@ -1,108 +1,53 @@
 import 'package:flutter/material.dart';
-import 'app_colors.dart';
 
 class AppTextStyles {
   AppTextStyles._();
 
-  // Display
   static const TextStyle displayLarge = TextStyle(
-    fontSize: 32,
-    fontWeight: FontWeight.w700,
-    color: AppColors.textPrimary,
-    letterSpacing: -0.5,
+    fontSize: 32, fontWeight: FontWeight.w700,
+    color: Color(0xFFFFFFFF), letterSpacing: -0.5,
   );
-
   static const TextStyle displayMedium = TextStyle(
-    fontSize: 26,
-    fontWeight: FontWeight.w700,
-    color: AppColors.textPrimary,
-    letterSpacing: -0.3,
+    fontSize: 26, fontWeight: FontWeight.w700,
+    color: Color(0xFFFFFFFF), letterSpacing: -0.3,
   );
-
-  // Headlines
   static const TextStyle headlineLarge = TextStyle(
-    fontSize: 22,
-    fontWeight: FontWeight.w600,
-    color: AppColors.textPrimary,
+    fontSize: 22, fontWeight: FontWeight.w600, color: Color(0xFFFFFFFF),
   );
-
   static const TextStyle headlineMedium = TextStyle(
-    fontSize: 18,
-    fontWeight: FontWeight.w600,
-    color: AppColors.textPrimary,
+    fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFFFFFFFF),
   );
-
   static const TextStyle headlineSmall = TextStyle(
-    fontSize: 16,
-    fontWeight: FontWeight.w600,
-    color: AppColors.textPrimary,
+    fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFFFFFFFF),
   );
-
-  // Body
   static const TextStyle bodyLarge = TextStyle(
-    fontSize: 16,
-    fontWeight: FontWeight.w400,
-    color: AppColors.textPrimary,
+    fontSize: 16, fontWeight: FontWeight.w400, color: Color(0xFFFFFFFF),
   );
-
   static const TextStyle bodyMedium = TextStyle(
-    fontSize: 14,
-    fontWeight: FontWeight.w400,
-    color: AppColors.textPrimary,
+    fontSize: 14, fontWeight: FontWeight.w400, color: Color(0xFFFFFFFF),
   );
-
   static const TextStyle bodySmall = TextStyle(
-    fontSize: 12,
-    fontWeight: FontWeight.w400,
-    color: AppColors.textSecondary,
+    fontSize: 12, fontWeight: FontWeight.w400, color: Color(0xFFB0B0CC),
   );
-
-  // Labels
   static const TextStyle labelLarge = TextStyle(
-    fontSize: 14,
-    fontWeight: FontWeight.w500,
-    color: AppColors.textPrimary,
-    letterSpacing: 0.1,
+    fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFFFFFFFF),
   );
-
   static const TextStyle labelMedium = TextStyle(
-    fontSize: 12,
-    fontWeight: FontWeight.w500,
-    color: AppColors.textSecondary,
-    letterSpacing: 0.2,
+    fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFFB0B0CC),
   );
-
   static const TextStyle labelSmall = TextStyle(
-    fontSize: 11,
-    fontWeight: FontWeight.w500,
-    color: AppColors.textHint,
-    letterSpacing: 0.3,
+    fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF6B6B8A),
   );
-
-  // Special
   static const TextStyle buttonText = TextStyle(
-    fontSize: 16,
-    fontWeight: FontWeight.w600,
-    color: AppColors.textPrimary,
-    letterSpacing: 0.2,
+    fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFFFFFFFF),
   );
-
   static const TextStyle caption = TextStyle(
-    fontSize: 11,
-    fontWeight: FontWeight.w400,
-    color: AppColors.textHint,
+    fontSize: 11, fontWeight: FontWeight.w400, color: Color(0xFF6B6B8A),
   );
-
   static const TextStyle tab = TextStyle(
-    fontSize: 10,
-    fontWeight: FontWeight.w500,
-    letterSpacing: 0.3,
+    fontSize: 10, fontWeight: FontWeight.w500, letterSpacing: 0.3,
   );
-
-  // Mood label
   static const TextStyle moodLabel = TextStyle(
-    fontSize: 12,
-    fontWeight: FontWeight.w600,
-    letterSpacing: 0.2,
+    fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.2,
   );
 }

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../data/models/user_model.dart';
+import '../../../data/models/friendship_model.dart';
 import '../../../shared/widgets/mood_indicator.dart';
 import '../../../shared/widgets/user_avatar.dart';
 import '../../friends/friends_controller.dart';
@@ -10,7 +11,6 @@ import '../people_controller.dart';
 
 class PeopleList extends StatelessWidget {
   final PeopleController controller;
-
   const PeopleList({super.key, required this.controller});
 
   @override
@@ -23,12 +23,15 @@ class PeopleList extends StatelessWidget {
             if (controller.isLoading.value) {
               return const Center(child: CircularProgressIndicator());
             }
-
             final users = controller.filteredUsers;
             if (users.isEmpty) {
-              return _buildEmpty(context);
+              return Center(
+                child: Text('Никого нет рядом',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textHint,
+                        )),
+              );
             }
-
             return RefreshIndicator(
               onRefresh: controller.refresh,
               color: AppColors.primary,
@@ -52,7 +55,6 @@ class PeopleList extends StatelessWidget {
       ('waiting', AppStrings.filterWaiting),
       ('sad', AppStrings.filterSad),
     ];
-
     return SizedBox(
       height: 38,
       child: Obx(() => ListView(
@@ -82,35 +84,15 @@ class PeopleList extends StatelessWidget {
           )),
     );
   }
-
-  Widget _buildEmpty(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.people_outline, size: 48, color: AppColors.textHint),
-          const SizedBox(height: 12),
-          Text(
-            'Никого нет рядом',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textHint,
-                ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _UserCard extends StatelessWidget {
   final UserModel user;
-
   const _UserCard({required this.user});
 
   @override
   Widget build(BuildContext context) {
     final friends = Get.find<FriendsController>();
-
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -126,19 +108,15 @@ class _UserCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '${user.name}, ${user.age ?? '?'}',
-                  style: Theme.of(context).textTheme.labelLarge,
-                ),
-                const SizedBox(height: 3),
-                if (user.mood != null) MoodChip(mood: user.mood!),
-                if (user.distanceMeters != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    AppStrings.distance(user.distanceMeters!),
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
+                Text('${user.name}, ${user.age ?? '?'}',
+                    style: Theme.of(context).textTheme.labelLarge),
+                if (user.mood != null) ...[
+                  const SizedBox(height: 3),
+                  MoodChip(mood: user.mood!),
                 ],
+                if (user.distanceMeters != null)
+                  Text(AppStrings.distance(user.distanceMeters!),
+                      style: Theme.of(context).textTheme.bodySmall),
               ],
             ),
           ),
@@ -152,7 +130,6 @@ class _UserCard extends StatelessWidget {
 class _AddFriendButton extends StatelessWidget {
   final UserModel user;
   final FriendsController friendsCtrl;
-
   const _AddFriendButton({required this.user, required this.friendsCtrl});
 
   @override
@@ -160,7 +137,6 @@ class _AddFriendButton extends StatelessWidget {
     return Obx(() {
       final status = friendsCtrl.getFriendStatusWith(user.id);
       if (status == FriendshipStatus.accepted) return const SizedBox.shrink();
-
       final isPending = status == FriendshipStatus.pending;
       return GestureDetector(
         onTap: isPending ? null : () => friendsCtrl.sendRequest(user.id),
