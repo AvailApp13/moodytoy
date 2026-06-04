@@ -9,8 +9,6 @@ workflows:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.moodytoy.app
-        certificate_name: MoodyToy AppStore
-        provisioning_profile_name: moodytoy_appstore
     scripts:
       - name: Get Flutter packages
         script: flutter pub get
