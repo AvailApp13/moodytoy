@@ -16,6 +16,27 @@ workflows:
       - name: Flutter packages
         script: flutter pub get
 
+      - name: Regenerate iOS project
+        script: |
+          # Сохраняем кастомные файлы
+          cp ios/Runner/Info.plist /tmp/Runner_Info.plist
+          cp ios/Runner/AppDelegate.swift /tmp/AppDelegate.swift
+          cp ios/Flutter/AppFrameworkInfo.plist /tmp/AppFrameworkInfo.plist
+          cp ios/Podfile /tmp/Podfile
+
+          # Пересоздаём iOS проект — получаем правильные Flutter build phases
+          flutter create --platforms=ios --org com.moodytoy --project-name app .
+
+          # Восстанавливаем кастомные файлы
+          cp /tmp/Runner_Info.plist ios/Runner/Info.plist
+          cp /tmp/AppDelegate.swift ios/Runner/AppDelegate.swift
+          cp /tmp/AppFrameworkInfo.plist ios/Flutter/AppFrameworkInfo.plist
+          cp /tmp/Podfile ios/Podfile
+
+          # Прописываем Team ID и минимальный iOS
+          sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = F2MD3735EJ;/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 12.0/IPHONEOS_DEPLOYMENT_TARGET = 14.0/g' ios/Runner.xcodeproj/project.pbxproj
+
       - name: Apply code signing
         script: xcode-project use-profiles
 
