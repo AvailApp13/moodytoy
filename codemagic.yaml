@@ -1,9 +1,9 @@
 workflows:
-  ios-build:
-    name: iOS Build IPA
+  ios-testflight:
+    name: iOS TestFlight
     max_build_duration: 60
     environment:
-      flutter: 3.27.4
+      flutter: 3.24.5
       xcode: latest
       cocoapods: default
       ios_signing:
@@ -11,75 +11,58 @@ workflows:
         bundle_identifier: com.moodytoy.app
       groups:
         - moodytoy
+
     scripts:
-      - name: Get Flutter packages
-        script: flutter pub get
-
-      - name: Regenerate iOS project
+      - name: Flutter packages
         script: |
-          rm -rf ios/Runner.xcodeproj ios/Runner.xcworkspace ios/Podfile.lock ios/Pods
-          flutter create --platforms=ios --org com.moodytoy --project-name app .
           flutter pub get
-
-      - name: Fix project settings
-        script: |
-          sed -i '' 's/PRODUCT_BUNDLE_IDENTIFIER = com.moodytoy.clone;/PRODUCT_BUNDLE_IDENTIFIER = com.moodytoy.app;/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/PRODUCT_BUNDLE_IDENTIFIER = com.moodytoy.app.clone;/PRODUCT_BUNDLE_IDENTIFIER = com.moodytoy.app;/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 12.0/IPHONEOS_DEPLOYMENT_TARGET = 14.0/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = F2MD3735EJ;/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' "s/platform :ios, '12.0'/platform :ios, '14.0'/" ios/Podfile
-          sed -i '' "s/# platform :ios, '12.0'/platform :ios, '14.0'/" ios/Podfile
 
       - name: Apply code signing
         script: xcode-project use-profiles
 
       - name: Pod install
-        script: cd ios && pod install --repo-update
-
-      - name: Build Flutter (no codesign)
-        script: flutter build ios --release --no-codesign
-
-      - name: Patch App.framework Info.plist
         script: |
-          # Найти App.framework который будет скопирован в архив
-          APP_FRAMEWORK="build/ios/Release-iphoneos/App.framework"
-          PLIST="$APP_FRAMEWORK/Info.plist"
-          
-          echo "Checking: $PLIST"
-          ls -la "$APP_FRAMEWORK" || echo "Not found at expected path"
-          
-          # Найти все App.framework
-          find build -name "App.framework" -type d 2>/dev/null
-          
-          # Патчим все найденные
-          find build -path "*/App.framework/Info.plist" | while read plist; do
-            echo "Patching: $plist"
-            /usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string com.moodytoy.app" "$plist" 2>/dev/null || \
-            /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier com.moodytoy.app" "$plist"
-            /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$plist"
-          done
+          cd ios && pod install --repo-update
 
-      - name: Archive and export IPA
+      - name: Build IPA
         script: |
-          # Архивируем (используем уже собранный Flutter код)
-          xcodebuild archive \
-            -workspace ios/Runner.xcworkspace \
-            -scheme Runner \
-            -configuration Release \
-            -archivePath build/ios/archive/Runner.xcarchive \
-            DEVELOPMENT_TEAM=F2MD3735EJ \
-            PRODUCT_BUNDLE_IDENTIFIER=com.moodytoy.app \
-            CODE_SIGN_STYLE=Manual \
-            -allowProvisioningUpdates \
-            | xcpretty
+          flutter build ipa \
+            --release \
+            --export-options-plist=$HOME/export_options.plist \
+            --verbose 2>&1 | tail -50
           
-          # Экспортируем IPA
-          xcodebuild -exportArchive \
-            -archivePath build/ios/archive/Runner.xcarchive \
-            -exportPath build/ios/ipa \
-            -exportOptionsPlist $HOME/export_options.plist \
-            -allowProvisioningUpdates
+          # Если flutter build ipa не создал IPA из-за App.framework,
+          # патчим xcarchive и экспортируем вручную
+          ARCHIVE="build/ios/archive/Runner.xcarchive"
+          IPA_DIR="build/ios/ipa"
+          
+          if [ ! -f "$IPA_DIR"/*.ipa ] && [ -d "$ARCHIVE" ]; then
+            echo "IPA not found, patching xcarchive..."
+            find "$ARCHIVE" -name "App.framework" -type d | while read fw; do
+              plist="$fw/Info.plist"
+              if [ -f "$plist" ]; then
+                echo "Patching: $plist"
+                /usr/libexec/PlistBuddy -c "Delete :CFBundleIdentifier" "$plist" 2>/dev/null || true
+                /usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string com.moodytoy.app.flutter" "$plist"
+                echo "Result: $(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$plist")"
+              fi
+            done
+            
+            mkdir -p "$IPA_DIR"
+            xcodebuild -exportArchive \
+              -archivePath "$ARCHIVE" \
+              -exportPath "$IPA_DIR" \
+              -exportOptionsPlist $HOME/export_options.plist \
+              -allowProvisioningUpdates
+          fi
 
     artifacts:
       - build/ios/ipa/*.ipa
       - build/ios/archive/*.xcarchive
+
+    publishing:
+      app_store_connect:
+        api_key: QB9G5729CH
+        key_id: QB9G5729CH
+        issuer_id: 69a6de82-0693-47e3-e053-5b8c7c11a4d1
+        submit_to_testflight: true
