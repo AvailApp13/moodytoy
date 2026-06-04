@@ -9,7 +9,10 @@ workflows:
     scripts:
       - name: Get Flutter packages
         script: flutter pub get
-      - name: Build iOS simulator (no signing)
+      - name: Pod install
+        script: |
+          cd ios && pod install --repo-update
+      - name: Build iOS simulator
         script: |
           flutter build ios --simulator --debug
     artifacts:
