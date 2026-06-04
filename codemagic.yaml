@@ -3,7 +3,7 @@ workflows:
     name: iOS Build IPA
     max_build_duration: 60
     environment:
-      flutter: 3.22.0
+      flutter: 3.27.4
       xcode: latest
       cocoapods: default
       ios_signing:
@@ -38,7 +38,6 @@ workflows:
 
       - name: Build IPA
         script: |
-          defaults write com.apple.dt.Xcode IDESkipPackagePluginFingerprintValidatation -bool YES
           flutter build ipa --release \
             --export-options-plist=$HOME/export_options.plist
 
