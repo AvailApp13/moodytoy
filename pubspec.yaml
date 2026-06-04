@@ -28,7 +28,7 @@ dependencies:
   amap_flutter_location: ^3.0.0
 
   # Push Notifications (China)
-  jpush_flutter: ^5.0.0
+  jpush_flutter: ^3.4.5
 
   # Photos
   image_picker: ^1.1.2
