@@ -26,9 +26,17 @@ workflows:
           sed -i '' "s/platform :ios, '12.0'/platform :ios, '14.0'/" ios/Podfile
           sed -i '' "s/# platform :ios, '12.0'/platform :ios, '14.0'/" ios/Podfile
 
-      - name: Set code signing settings
+      - name: Set code signing
         script: |
           xcode-project use-profiles
+          # Отключить автоматическую подпись
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/' \
+            ios/Runner.xcodeproj/project.pbxproj
+          # Установить Team ID
+          sed -i '' 's/DEVELOPMENT_TEAM = ""/DEVELOPMENT_TEAM = F2MD3735EJ/' \
+            ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/DEVELOPMENT_TEAM = ;/DEVELOPMENT_TEAM = F2MD3735EJ;/' \
+            ios/Runner.xcodeproj/project.pbxproj
 
       - name: Pod install
         script: cd ios && pod install --repo-update
