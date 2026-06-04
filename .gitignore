@@ -9,9 +9,6 @@ build/
 *.iml
 
 # Environment
-.env
-.env.local
-.env.production
 
 # IDE
 .idea/
