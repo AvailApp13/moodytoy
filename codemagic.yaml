@@ -21,41 +21,57 @@ workflows:
           flutter create --platforms=ios --org com.moodytoy --project-name app .
           flutter pub get
 
-      - name: Fix bundle ID and deployment target
+      - name: Fix project settings
         script: |
-          sed -i '' 's/PRODUCT_BUNDLE_IDENTIFIER = com.moodytoy.clone;/PRODUCT_BUNDLE_IDENTIFIER = com.moodytoy.app;/g' \
-            ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/PRODUCT_BUNDLE_IDENTIFIER = com.moodytoy.app.clone;/PRODUCT_BUNDLE_IDENTIFIER = com.moodytoy.app;/g' \
-            ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 12.0/IPHONEOS_DEPLOYMENT_TARGET = 14.0/g' \
-            ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/PRODUCT_BUNDLE_IDENTIFIER = com.moodytoy.clone;/PRODUCT_BUNDLE_IDENTIFIER = com.moodytoy.app;/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/PRODUCT_BUNDLE_IDENTIFIER = com.moodytoy.app.clone;/PRODUCT_BUNDLE_IDENTIFIER = com.moodytoy.app;/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 12.0/IPHONEOS_DEPLOYMENT_TARGET = 14.0/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = F2MD3735EJ;/g' ios/Runner.xcodeproj/project.pbxproj
           sed -i '' "s/platform :ios, '12.0'/platform :ios, '14.0'/" ios/Podfile
           sed -i '' "s/# platform :ios, '12.0'/platform :ios, '14.0'/" ios/Podfile
-          sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = F2MD3735EJ;/g' \
-            ios/Runner.xcodeproj/project.pbxproj
 
-      - name: Apply code signing profiles
+      - name: Apply code signing
         script: xcode-project use-profiles
 
       - name: Pod install
         script: cd ios && pod install --repo-update
 
-      - name: Build IPA
+      - name: Build archive with xcodebuild
         script: |
-          # Build Flutter first to generate App.framework
+          # Сначала собираем flutter чтобы сгенерировался App.framework
           flutter build ios --release --no-codesign
           
-          # Fix App.framework Info.plist before archiving
-          find . -path "*/App.framework/Info.plist" | while read plist; do
-            echo "Fixing: $plist"
-            plutil -replace CFBundleIdentifier -string "com.moodytoy.app" "$plist" || true
-            plutil -replace CFBundleVersion -string "1" "$plist" || true
-            plutil -replace CFBundleShortVersionString -string "1.0.0" "$plist" || true
+          # Патчим все Info.plist в App.framework
+          find ~/Library/Developer/Xcode -name "App.framework" -type d 2>/dev/null | while read f; do
+            if [ -f "$f/Info.plist" ]; then
+              /usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string com.moodytoy.app" "$f/Info.plist" 2>/dev/null || \
+              /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier com.moodytoy.app" "$f/Info.plist"
+              echo "Patched: $f/Info.plist"
+            fi
+          done
+          find . -path "*/App.framework/Info.plist" | while read f; do
+            /usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string com.moodytoy.app" "$f" 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier com.moodytoy.app" "$f"
+            echo "Patched: $f"
           done
           
-          # Now build IPA
-          flutter build ipa --release \
-            --export-options-plist=$HOME/export_options.plist
+          # Теперь архивируем
+          xcodebuild archive \
+            -workspace ios/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -archivePath build/ios/archive/Runner.xcarchive \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM=F2MD3735EJ \
+            PRODUCT_BUNDLE_IDENTIFIER=com.moodytoy.app \
+            -allowProvisioningUpdates
+          
+          # Экспортируем IPA
+          xcodebuild -exportArchive \
+            -archivePath build/ios/archive/Runner.xcarchive \
+            -exportPath build/ios/ipa \
+            -exportOptionsPlist $HOME/export_options.plist \
+            -allowProvisioningUpdates
 
     artifacts:
       - build/ios/ipa/*.ipa
