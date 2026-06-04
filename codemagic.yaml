@@ -36,10 +36,50 @@ workflows:
       - name: Pod install
         script: cd ios && pod install --repo-update
 
-      - name: Build IPA
+      - name: Build Flutter (no codesign)
+        script: flutter build ios --release --no-codesign
+
+      - name: Patch App.framework Info.plist
         script: |
-          flutter build ipa --release \
-            --export-options-plist=$HOME/export_options.plist
+          # Найти App.framework который будет скопирован в архив
+          APP_FRAMEWORK="build/ios/Release-iphoneos/App.framework"
+          PLIST="$APP_FRAMEWORK/Info.plist"
+          
+          echo "Checking: $PLIST"
+          ls -la "$APP_FRAMEWORK" || echo "Not found at expected path"
+          
+          # Найти все App.framework
+          find build -name "App.framework" -type d 2>/dev/null
+          
+          # Патчим все найденные
+          find build -path "*/App.framework/Info.plist" | while read plist; do
+            echo "Patching: $plist"
+            /usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string com.moodytoy.app" "$plist" 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier com.moodytoy.app" "$plist"
+            /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$plist"
+          done
+
+      - name: Archive and export IPA
+        script: |
+          # Архивируем (используем уже собранный Flutter код)
+          xcodebuild archive \
+            -workspace ios/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -archivePath build/ios/archive/Runner.xcarchive \
+            DEVELOPMENT_TEAM=F2MD3735EJ \
+            PRODUCT_BUNDLE_IDENTIFIER=com.moodytoy.app \
+            CODE_SIGN_STYLE=Manual \
+            -allowProvisioningUpdates \
+            | xcpretty
+          
+          # Экспортируем IPA
+          xcodebuild -exportArchive \
+            -archivePath build/ios/archive/Runner.xcarchive \
+            -exportPath build/ios/ipa \
+            -exportOptionsPlist $HOME/export_options.plist \
+            -allowProvisioningUpdates
 
     artifacts:
       - build/ios/ipa/*.ipa
+      - build/ios/archive/*.xcarchive
