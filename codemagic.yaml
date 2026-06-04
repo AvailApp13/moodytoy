@@ -14,11 +14,13 @@ workflows:
     scripts:
       - name: Get Flutter packages
         script: flutter pub get
+
       - name: Regenerate iOS project
         script: |
           rm -rf ios/Runner.xcodeproj ios/Runner.xcworkspace ios/Podfile.lock ios/Pods
           flutter create --platforms=ios --org com.moodytoy --project-name app .
           flutter pub get
+
       - name: Fix bundle ID and deployment target
         script: |
           sed -i '' 's/PRODUCT_BUNDLE_IDENTIFIER = com.moodytoy.clone;/PRODUCT_BUNDLE_IDENTIFIER = com.moodytoy.app;/g' \
@@ -31,17 +33,33 @@ workflows:
           sed -i '' "s/# platform :ios, '12.0'/platform :ios, '14.0'/" ios/Podfile
           sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = F2MD3735EJ;/g' \
             ios/Runner.xcodeproj/project.pbxproj
+
       - name: Apply code signing profiles
         script: xcode-project use-profiles
+
       - name: Pod install
         script: cd ios && pod install --repo-update
+
       - name: Build IPA
         script: |
+          # Build Flutter first to generate App.framework
+          flutter build ios --release --no-codesign
+          
+          # Fix App.framework Info.plist before archiving
+          find . -path "*/App.framework/Info.plist" | while read plist; do
+            echo "Fixing: $plist"
+            plutil -replace CFBundleIdentifier -string "com.moodytoy.app" "$plist" || true
+            plutil -replace CFBundleVersion -string "1" "$plist" || true
+            plutil -replace CFBundleShortVersionString -string "1.0.0" "$plist" || true
+          done
+          
+          # Now build IPA
           flutter build ipa --release \
             --export-options-plist=$HOME/export_options.plist
+
     artifacts:
       - build/ios/ipa/*.ipa
-      - build/ios/archive/*.xcarchive
+
     publishing:
       app_store_connect:
         api_key: QB9G5729CH
