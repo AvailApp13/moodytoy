@@ -1,42 +1,25 @@
-# Flutter
-.dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
-.packages
-.pub-cache/
-.pub/
-build/
-*.iml
-
-# Environment
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-
-# iOS
-ios/Pods/
-ios/.symlinks/
-ios/Flutter/Flutter.framework
-ios/Flutter/Flutter.podspec
-ios/Runner/GeneratedPluginRegistrant.*
-*.xcworkspace
-!default.xcworkspace
-
-# Android
-android/.gradle/
-android/captures/
-android/gradlew
-android/gradlew.bat
-android/local.properties
-android/**/GeneratedPluginRegistrant.java
-android/key.properties
-
-# macOS
-macos/Flutter/GeneratedPluginRegistrant.swift
-
-# Misc
-*.log
-coverage/
+```
+# Compressed files
+*.zip
+*.gz
+*.tar
+*.tgz
+*.bz2
+*.xz
+*.7z
+*.rar
+*.zst
+*.lz4
+*.lzh
+*.cab
+*.arj
+*.rpm
+*.deb
+*.Z
+*.lz
+*.lzo
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.zst
+```

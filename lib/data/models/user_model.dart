@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
 
-enum Mood { ready, waiting, sad, extra }
+enum Mood { coffeeBreak, gamer, dating, walk, sport }
 
 enum Gender { male, female, other }
 
@@ -11,38 +11,52 @@ enum LookingFor { male, female, all }
 extension MoodExtension on Mood {
   String get label {
     switch (this) {
-      case Mood.ready:   return AppStrings.moodReady;
-      case Mood.waiting: return AppStrings.moodWaiting;
-      case Mood.sad:     return AppStrings.moodSad;
-      case Mood.extra:   return AppStrings.moodExtra;
+      case Mood.coffeeBreak: return 'Кофе-брейк';
+      case Mood.gamer:       return 'Игрок';
+      case Mood.dating:      return 'Знакомство';
+      case Mood.walk:        return 'Прогулка';
+      case Mood.sport:       return 'Спорт/активность';
     }
   }
 
   String get value {
     switch (this) {
-      case Mood.ready:   return 'ready';
-      case Mood.waiting: return 'waiting';
-      case Mood.sad:     return 'sad';
-      case Mood.extra:   return 'extra';
+      case Mood.coffeeBreak: return 'coffee_break';
+      case Mood.gamer:       return 'gamer';
+      case Mood.dating:      return 'dating';
+      case Mood.walk:        return 'walk';
+      case Mood.sport:       return 'sport';
     }
   }
 
   Color get color {
     switch (this) {
-      case Mood.ready:   return AppColors.moodReady;
-      case Mood.waiting: return AppColors.moodWaiting;
-      case Mood.sad:     return AppColors.moodSad;
-      case Mood.extra:   return AppColors.moodExtra;
+      case Mood.coffeeBreak: return const Color(0xFF6F4E37);
+      case Mood.gamer:       return const Color(0xFF4CAF50);
+      case Mood.dating:      return const Color(0xFFFF6B6B);
+      case Mood.walk:        return const Color(0xFF4A90E2);
+      case Mood.sport:       return const Color(0xFFFF9800);
+    }
+  }
+
+  IconData get icon {
+    switch (this) {
+      case Mood.coffeeBreak: return Icons.local_cafe;
+      case Mood.gamer:       return Icons.sports_esports;
+      case Mood.dating:      return Icons.favorite;
+      case Mood.walk:        return Icons.directions_walk;
+      case Mood.sport:       return Icons.fitness_center;
     }
   }
 
   static Mood fromString(String? value) {
     switch (value) {
-      case 'ready':   return Mood.ready;
-      case 'waiting': return Mood.waiting;
-      case 'sad':     return Mood.sad;
-      case 'extra':   return Mood.extra;
-      default:        return Mood.ready;
+      case 'coffee_break': return Mood.coffeeBreak;
+      case 'gamer':        return Mood.gamer;
+      case 'dating':       return Mood.dating;
+      case 'walk':         return Mood.walk;
+      case 'sport':        return Mood.sport;
+      default:             return Mood.coffeeBreak;
     }
   }
 }

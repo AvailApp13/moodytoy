@@ -4,9 +4,11 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
 import '../people/people_screen.dart';
 import '../collection/collection_screen.dart';
+import '../chats/chats_screen.dart';
 import '../friends/friends_screen.dart';
 import '../profile/profile_screen.dart';
 import '../friends/friends_controller.dart';
+import '../chats/chats_controller.dart';
 
 class MainNavScreen extends StatefulWidget {
   const MainNavScreen({super.key});
@@ -21,6 +23,7 @@ class _MainNavScreenState extends State<MainNavScreen> {
   final List<Widget> _screens = const [
     PeopleScreen(),
     CollectionScreen(),
+    ChatsScreen(),
     FriendsScreen(),
     ProfileScreen(),
   ];
@@ -29,6 +32,7 @@ class _MainNavScreenState extends State<MainNavScreen> {
   void initState() {
     super.initState();
     Get.put(FriendsController());
+    Get.put(ChatsController());
   }
 
   @override
@@ -58,6 +62,7 @@ class _MainNavScreenState extends State<MainNavScreen> {
           onTap: (index) => setState(() => _currentIndex = index),
           backgroundColor: Colors.transparent,
           elevation: 0,
+          type: BottomNavigationBarType.fixed,
           items: [
             const BottomNavigationBarItem(
               icon: Icon(Icons.people_outline),
@@ -68,6 +73,16 @@ class _MainNavScreenState extends State<MainNavScreen> {
               icon: Icon(Icons.toys_outlined),
               activeIcon: Icon(Icons.toys),
               label: AppStrings.tabCollection,
+            ),
+            BottomNavigationBarItem(
+              icon: GetX<ChatsController>(
+                builder: (c) => Badge(
+                  isLabelVisible: false,
+                  child: const Icon(Icons.chat_bubble_outline),
+                ),
+              ),
+              activeIcon: const Icon(Icons.chat_bubble),
+              label: AppStrings.tabChats,
             ),
             BottomNavigationBarItem(
               icon: GetX<FriendsController>(

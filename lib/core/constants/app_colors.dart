@@ -20,11 +20,22 @@ class AppColors {
   static const Color textHint = Color(0xFF6B6B8A);
   static const Color textDisabled = Color(0xFF3A3A5C);
 
-  // Mood colors
-  static const Color moodReady = Color(0xFF4CAF50);    // Готов — зелёный
-  static const Color moodWaiting = Color(0xFFFFB300);  // Жду — жёлтый
-  static const Color moodSad = Color(0xFF4A9EFF);      // Грущу — синий
-  static const Color moodExtra = Color(0xFFE040FB);    // Extra — фиолетовый
+  // Mood colors - новые цвета настроений из ТЗ
+  static const Color moodCoffeeBreak = Color(0xFF6F4E37);  // Коричневый
+  static const Color moodGamer = Color(0xFF4CAF50);        // Зелёный
+  static const Color moodDating = Color(0xFFFF6B6B);       // Розовый
+  static const Color moodWalk = Color(0xFF4A90E2);         // Голубой
+  static const Color moodSport = Color(0xFFFF9800);        // Оранжевый
+
+  // Старые названия для совместимости (удалить позже)
+  @Deprecated('Используйте moodCoffeeBreak')
+  static const Color moodReady = Color(0xFF4CAF50);
+  @Deprecated('Используйте moodSport')
+  static const Color moodWaiting = Color(0xFFFFB300);
+  @Deprecated('Используйте moodWalk')
+  static const Color moodSad = Color(0xFF4A9EFF);
+  @Deprecated('Не используется')
+  static const Color moodExtra = Color(0xFFE040FB);
 
   // Status
   static const Color success = Color(0xFF4CAF50);

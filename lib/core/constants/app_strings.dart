@@ -18,11 +18,19 @@ class AppStrings {
   static const String loginSuccess = 'Добро пожаловать!';
   static const String registerSuccess = 'Аккаунт создан!';
 
-  // Tabs
+  // Tabs - новый порядок из ТЗ
   static const String tabPeople = 'Люди';
   static const String tabCollection = 'Коллекция';
+  static const String tabChats = 'Чаты';
   static const String tabFriends = 'Друзья';
   static const String tabProfile = 'Я';
+
+  // Настроения (новые)
+  static const String moodCoffeeBreak = 'Кофе-брейк';
+  static const String moodGamer = 'Игрок';
+  static const String moodDating = 'Знакомство';
+  static const String moodWalk = 'Прогулка';
+  static const String moodSport = 'Спорт/активность';
 
   // People screen
   static const String nearbyPeople = 'Люди рядом';
@@ -37,11 +45,23 @@ class AppStrings {
   static const String filterWaiting = 'Жду';
   static const String filterSad = 'Грущу';
 
-  // Mood
+  // Old mood strings (deprecated)
+  @Deprecated('Используйте moodCoffeeBreak')
   static const String moodReady = 'Готов к встрече';
+  @Deprecated('Используйте moodSport')
   static const String moodWaiting = 'Жду';
+  @Deprecated('Используйте moodWalk')
   static const String moodSad = 'Грущу';
+  @Deprecated('Не используется')
   static const String moodExtra = 'Особый';
+
+  // Old filter strings (deprecated)
+  @Deprecated('Используйте новые фильтры')
+  static const String filterReady = 'Готов';
+  @Deprecated('Используйте новые фильтры')
+  static const String filterWaiting = 'Жду';
+  @Deprecated('Используйте новые фильтры')
+  static const String filterSad = 'Грущу';
 
   // Friends
   static const String friends = 'Друзья';
@@ -94,6 +114,12 @@ class AppStrings {
   static const String buy = 'Купить';
   static const String series = 'Серия';
   static const String bound = 'Привязан';
+
+  // Chats
+  static const String generalChats = 'Общие';
+  static const String personalChats = 'Личные';
+  static const String noPersonalChats = 'Нет личных чатов';
+  static const String sendMessage = 'Сообщение...';
 
   // Errors
   static const String errorGeneral = 'Что-то пошло не так';
