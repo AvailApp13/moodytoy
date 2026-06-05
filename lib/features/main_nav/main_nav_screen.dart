@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/constants/app_colors.dart';
-import '../../core/constants/app_strings.dart';
 import '../people/people_screen.dart';
 import '../collection/collection_screen.dart';
+import '../chats/chats_screen.dart';
+import '../chats/chats_controller.dart';
 import '../friends/friends_screen.dart';
-import '../profile/profile_screen.dart';
 import '../friends/friends_controller.dart';
+import '../profile/profile_screen.dart';
 
 class MainNavScreen extends StatefulWidget {
   const MainNavScreen({super.key});
@@ -21,6 +22,7 @@ class _MainNavScreenState extends State<MainNavScreen> {
   final List<Widget> _screens = const [
     PeopleScreen(),
     CollectionScreen(),
+    ChatsScreen(),
     FriendsScreen(),
     ProfileScreen(),
   ];
@@ -29,16 +31,14 @@ class _MainNavScreenState extends State<MainNavScreen> {
   void initState() {
     super.initState();
     Get.put(FriendsController());
+    Get.put(ChatsController());
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: _buildBottomNav(),
     );
   }
@@ -47,43 +47,52 @@ class _MainNavScreenState extends State<MainNavScreen> {
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.navBackground,
-        border: Border(
-          top: BorderSide(color: AppColors.border, width: 0.5),
-        ),
+        border: Border(top: BorderSide(color: AppColors.border, width: 0.5)),
       ),
       child: SafeArea(
         top: false,
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
-          onTap: (index) => setState(() => _currentIndex = index),
+          onTap: (i) => setState(() => _currentIndex = i),
           backgroundColor: Colors.transparent,
           elevation: 0,
+          type: BottomNavigationBarType.fixed,
+          selectedItemColor: AppColors.navSelected,
+          unselectedItemColor: AppColors.navUnselected,
+          selectedLabelStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+          unselectedLabelStyle: const TextStyle(fontSize: 10),
           items: [
             const BottomNavigationBarItem(
               icon: Icon(Icons.people_outline),
               activeIcon: Icon(Icons.people),
-              label: AppStrings.tabPeople,
+              label: 'Люди',
             ),
             const BottomNavigationBarItem(
               icon: Icon(Icons.toys_outlined),
               activeIcon: Icon(Icons.toys),
-              label: AppStrings.tabCollection,
+              label: 'Коллекция',
+            ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.chat_bubble_outline),
+              activeIcon: Icon(Icons.chat_bubble),
+              label: 'Чаты',
             ),
             BottomNavigationBarItem(
-              icon: GetX<FriendsController>(
+              icon: GetBuilder<FriendsController>(
                 builder: (c) => Badge(
                   isLabelVisible: c.incomingRequests.isNotEmpty,
-                  label: Text('${c.incomingRequests.length}'),
+                  label: Text('${c.incomingRequests.length}',
+                      style: const TextStyle(fontSize: 10)),
                   child: const Icon(Icons.people_alt_outlined),
                 ),
               ),
               activeIcon: const Icon(Icons.people_alt),
-              label: AppStrings.tabFriends,
+              label: 'Друзья',
             ),
             const BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
               activeIcon: Icon(Icons.person),
-              label: AppStrings.tabProfile,
+              label: 'Я',
             ),
           ],
         ),

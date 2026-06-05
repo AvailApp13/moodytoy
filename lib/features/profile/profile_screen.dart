@@ -1,14 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/constants/app_colors.dart';
-import '../../core/constants/app_strings.dart';
 import '../../data/models/user_model.dart';
-import '../../data/repositories/user_repository.dart';
-import '../../shared/widgets/mood_indicator.dart';
-import '../../shared/widgets/user_avatar.dart';
 import '../auth/auth_controller.dart';
-import 'keyfob_screen.dart';
-import 'ble_controller.dart';
+import '../chats/chats_controller.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -16,237 +11,96 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = Get.find<AuthController>();
-    Get.put(BleController());
-
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: Obx(() {
           final user = auth.currentUser.value;
-          if (user == null) {
-            return const Center(child: CircularProgressIndicator());
-          }
+          if (user == null) return const Center(child: CircularProgressIndicator());
           return _buildContent(context, user, auth);
         }),
       ),
     );
   }
 
-  Widget _buildContent(
-      BuildContext context, UserModel user, AuthController auth) {
+  Widget _buildContent(BuildContext ctx, UserModel user, AuthController auth) {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        // ── Шапка профиля ──────────────────────────────────
-        _buildProfileHeader(context, user),
+        _buildHeader(ctx, user, auth),
         const SizedBox(height: 16),
-
-        // ── Информация ─────────────────────────────────────
-        _buildInfoCard(context, user),
+        _buildInfoCard(ctx, user, auth),
         const SizedBox(height: 12),
-
-        // ── Настроение ─────────────────────────────────────
-        _buildMoodCard(context, user),
+        _buildMoodCard(ctx, user, auth),
         const SizedBox(height: 12),
-
-        // ── Настройки ──────────────────────────────────────
-        _buildSettingsCard(context, auth),
+        _buildLocationToggle(user, auth),
+        const SizedBox(height: 12),
+        _buildSettingsButton(ctx, auth),
         const SizedBox(height: 16),
-
-        // ── Кнопка брелока ─────────────────────────────────
-        _buildKeyfobButton(context),
+        _buildKeyfobButton(ctx),
         const SizedBox(height: 24),
       ],
     );
   }
 
-  Widget _buildProfileHeader(BuildContext context, UserModel user) {
-    return Row(
-      children: [
-        ProfileAvatarWidget(user: user, size: 72),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(user.name, style: Theme.of(context).textTheme.headlineLarge),
-              if (user.city != null || user.age != null)
-                Text(
-                  [
-                    if (user.city != null) user.city,
-                    if (user.age != null) '${user.age} лет',
-                  ].join(' · '),
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              if (user.hasKeyfob)
-                const Padding(
-                  padding: EdgeInsets.only(top: 4),
-                  child: Row(
-                    children: [
-                      Icon(Icons.bluetooth_connected,
-                          size: 12, color: AppColors.primary),
-                      SizedBox(width: 4),
-                      Text('Брелок привязан',
-                          style: TextStyle(
-                              fontSize: 11, color: AppColors.primary)),
-                    ],
-                  ),
-                ),
-            ],
+  Widget _buildHeader(BuildContext ctx, UserModel user, AuthController auth) {
+    return Row(children: [
+      GestureDetector(
+        onTap: () => _editAvatar(ctx, auth),
+        child: Stack(children: [
+          Container(
+            width: 80, height: 80,
+            decoration: BoxDecoration(
+              color: user.mood?.color.withOpacity(0.2) ?? AppColors.surfaceVariant,
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.primary, width: 2.5),
+            ),
+            child: Center(child: Text(user.avatarEmoji ?? '😊',
+                style: const TextStyle(fontSize: 36))),
           ),
-        ),
-        IconButton(
-          icon: const Icon(Icons.settings_outlined),
-          onPressed: () => Get.to(() => const SettingsScreen()),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildInfoCard(BuildContext context, UserModel user) {
-    return _card(
-      context,
-      children: [
-        if (user.bio != null && user.bio!.isNotEmpty)
-          _infoRow(context, Icons.info_outline, AppStrings.about, user.bio!),
-        if (user.city != null)
-          _infoRow(context, Icons.location_city_outlined, AppStrings.city, user.city!),
-        if (user.height != null)
-          _infoRow(context, Icons.height, AppStrings.height, '${user.height} см'),
-        if (user.tags.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: user.tags
-                .map((tag) => Chip(
-                      label: Text(tag,
-                          style: const TextStyle(fontSize: 11)),
-                      padding: EdgeInsets.zero,
-                    ))
-                .toList(),
+          Positioned(right: 0, bottom: 0,
+            child: Container(
+              width: 26, height: 26,
+              decoration: BoxDecoration(
+                color: AppColors.primary, shape: BoxShape.circle,
+                border: Border.all(color: AppColors.background, width: 2),
+              ),
+              child: const Icon(Icons.edit, size: 13, color: Colors.white),
+            ),
           ),
+        ]),
+      ),
+      const SizedBox(width: 16),
+      Expanded(child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(user.name,
+              style: const TextStyle(color: Colors.white,
+                  fontSize: 22, fontWeight: FontWeight.bold)),
+          if (user.city != null || user.age != null)
+            Text(
+              [if (user.city != null) user.city!, if (user.age != null) '${user.age} лет'].join(' · '),
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+            ),
         ],
-      ],
-    );
-  }
-
-  Widget _buildMoodCard(BuildContext context, UserModel user) {
-    return _card(
-      context,
-      children: [
-        Text('Настроение', style: Theme.of(context).textTheme.labelLarge),
-        const SizedBox(height: 12),
-        MoodSelector(
-          selected: user.mood,
-          onSelect: (mood) async {
-            await UserRepository.updateMood(mood);
-            await Get.find<AuthController>().refreshProfile();
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSettingsCard(BuildContext context, AuthController auth) {
-    return _card(
-      context,
-      children: [
-        _settingsRow(
-          context,
-          Icons.person_outline,
-          AppStrings.editProfile,
-          () {},
-        ),
-        _divider(),
-        _settingsRow(
-          context,
-          Icons.notifications_outlined,
-          AppStrings.notifications,
-          () {},
-        ),
-        _divider(),
-        _settingsRow(
-          context,
-          Icons.help_outline,
-          AppStrings.support,
-          () {},
-        ),
-        _divider(),
-        _settingsRow(
-          context,
-          Icons.logout,
-          AppStrings.logout,
-          () => _confirmLogout(context, auth),
-          color: AppColors.error,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildKeyfobButton(BuildContext context) {
-    final bleCtrl = Get.find<BleController>();
-    return Obx(() {
-      final isConnected = bleCtrl.isConnected.value;
-      final mac = bleCtrl.connectedMac.value;
-
-      return GestureDetector(
-        onTap: () => Get.to(() => const KeyfobScreen()),
+      )),
+      GestureDetector(
+        onTap: () => Get.to(() => const _SettingsScreen()),
         child: Container(
-          padding: const EdgeInsets.all(16),
+          width: 40, height: 40,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                AppColors.primary.withOpacity(0.15),
-                AppColors.primaryDark.withOpacity(0.1),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: AppColors.primary.withOpacity(0.3),
-            ),
+            color: AppColors.surfaceVariant,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.border, width: 0.5),
           ),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.bluetooth,
-                    color: AppColors.primary, size: 24),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      isConnected
-                          ? AppStrings.manageKeyfob
-                          : AppStrings.connectKeyfob,
-                      style: Theme.of(context).textTheme.headlineSmall,
-                    ),
-                    Text(
-                      isConnected
-                          ? 'ID: $mac · Батарея: ${bleCtrl.batteryLevel.value ?? '--'}%'
-                          : 'nRF52832 · BLE 5.2 · OTA',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.chevron_right, color: AppColors.textSecondary),
-            ],
-          ),
+          child: const Icon(Icons.settings_outlined,
+              size: 20, color: AppColors.textSecondary),
         ),
-      );
-    });
+      ),
+    ]);
   }
 
-  Widget _card(BuildContext context, {required List<Widget> children}) {
+  Widget _buildInfoCard(BuildContext ctx, UserModel user, AuthController auth) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -256,138 +110,427 @@ class ProfileScreen extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: children,
-      ),
-    );
-  }
-
-  Widget _infoRow(
-      BuildContext context, IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
         children: [
-          Icon(icon, size: 16, color: AppColors.textHint),
-          const SizedBox(width: 8),
-          Text('$label: ',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: AppColors.textHint)),
-          Expanded(
-            child: Text(value, style: Theme.of(context).textTheme.bodySmall),
+          _infoRow(Icons.cake_outlined, 'Возраст', '${user.age ?? '?'} лет'),
+          const SizedBox(height: 8),
+          _infoRow(Icons.location_on_outlined, 'Город', user.city ?? 'Не указан'),
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: () => _editBio(ctx, auth, user),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(children: [
+                  Icon(Icons.edit_note_outlined,
+                      size: 16, color: AppColors.textHint),
+                  SizedBox(width: 6),
+                  Text('О себе',
+                      style: TextStyle(color: AppColors.textHint, fontSize: 12)),
+                ]),
+                const SizedBox(height: 4),
+                Text(
+                  user.bio?.isNotEmpty == true ? user.bio! : 'Нажмите чтобы добавить описание...',
+                  style: TextStyle(
+                    color: user.bio?.isNotEmpty == true
+                        ? AppColors.textPrimary
+                        : AppColors.textHint,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _settingsRow(
-    BuildContext context,
-    IconData icon,
-    String label,
-    VoidCallback onTap, {
-    Color? color,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Row(
+  Widget _infoRow(IconData icon, String label, String value) {
+    return Row(children: [
+      Icon(icon, size: 16, color: AppColors.textHint),
+      const SizedBox(width: 8),
+      Text('$label: ', style: const TextStyle(
+          color: AppColors.textHint, fontSize: 13)),
+      Text(value, style: const TextStyle(
+          color: AppColors.textPrimary, fontSize: 13)),
+    ]);
+  }
+
+  Widget _buildMoodCard(BuildContext ctx, UserModel user, AuthController auth) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border, width: 0.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Текущее настроение',
+              style: TextStyle(color: AppColors.textSecondary,
+                  fontSize: 12, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8, runSpacing: 8,
+            children: Mood.values.map((mood) {
+              final isActive = user.mood == mood;
+              return GestureDetector(
+                onTap: () async {
+                  await auth.updateMood(mood);
+                  // Синхронизация с чатами — уже делается через updateMood
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isActive
+                        ? mood.color.withOpacity(0.25)
+                        : AppColors.surfaceVariant,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isActive ? mood.color : AppColors.border,
+                      width: isActive ? 1.5 : 0.5,
+                    ),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Text(mood.emoji, style: const TextStyle(fontSize: 14)),
+                    const SizedBox(width: 6),
+                    Text(mood.label,
+                        style: TextStyle(
+                          color: isActive ? mood.color : AppColors.textSecondary,
+                          fontSize: 12,
+                          fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                        )),
+                  ]),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLocationToggle(UserModel user, AuthController auth) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border, width: 0.5),
+      ),
+      child: Row(children: [
+        const Icon(Icons.location_on_outlined,
+            size: 20, color: AppColors.textSecondary),
+        const SizedBox(width: 12),
+        const Expanded(child: Text('Показывать меня на карте',
+            style: TextStyle(color: Colors.white, fontSize: 14))),
+        Switch(
+          value: user.locationEnabled,
+          onChanged: (val) => auth.toggleLocation(val),
+          activeColor: AppColors.primary,
+        ),
+      ]),
+    );
+  }
+
+  Widget _buildSettingsButton(BuildContext ctx, AuthController auth) {
+    return GestureDetector(
+      onTap: () => Get.to(() => const _SettingsScreen()),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border, width: 0.5),
+        ),
+        child: Row(children: [
+          const Icon(Icons.settings_outlined,
+              size: 20, color: AppColors.textSecondary),
+          const SizedBox(width: 12),
+          const Expanded(child: Text('Настройки профиля',
+              style: TextStyle(color: Colors.white, fontSize: 14))),
+          const Icon(Icons.chevron_right,
+              size: 20, color: AppColors.textHint),
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildKeyfobButton(BuildContext ctx) {
+    return GestureDetector(
+      onTap: () => Get.snackbar('🎮 Брелок', 'Функция в разработке',
+          duration: const Duration(seconds: 2),
+          backgroundColor: AppColors.surface,
+          colorText: Colors.white),
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [AppColors.primary, AppColors.primary.withOpacity(0.7)],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withOpacity(0.4),
+              blurRadius: 12, offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 20, color: color ?? AppColors.textSecondary),
-            const SizedBox(width: 12),
-            Text(label,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.copyWith(color: color)),
-            const Spacer(),
-            if (color == null)
-              const Icon(Icons.chevron_right,
-                  size: 18, color: AppColors.textHint),
+            Text('🧸', style: TextStyle(fontSize: 24)),
+            SizedBox(width: 12),
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Подключить игрушку',
+                  style: TextStyle(color: Colors.white,
+                      fontSize: 16, fontWeight: FontWeight.bold)),
+              Text('nRF52832 · BLE 5.0 · OTA',
+                  style: TextStyle(color: Colors.white70, fontSize: 11)),
+            ]),
+            Spacer(),
+            Icon(Icons.bluetooth, color: Colors.white, size: 22),
           ],
         ),
       ),
     );
   }
 
-  Widget _divider() => const Divider(height: 1);
-
-  void _confirmLogout(BuildContext context, AuthController auth) {
+  void _editBio(BuildContext ctx, AuthController auth, UserModel user) {
+    final controller = TextEditingController(text: user.bio ?? '');
     Get.dialog(AlertDialog(
-      title: const Text('Выйти?'),
-      content: const Text('Вы уверены что хотите выйти?'),
+      backgroundColor: AppColors.surface,
+      title: const Text('О себе', style: TextStyle(color: Colors.white)),
+      content: Column(mainAxisSize: MainAxisSize.min, children: [
+        TextField(
+          controller: controller,
+          style: const TextStyle(color: Colors.white),
+          maxLength: 200,
+          maxLines: 4,
+          decoration: const InputDecoration(
+            hintText: 'Расскажи о себе...',
+            hintStyle: TextStyle(color: AppColors.textHint),
+            counterStyle: TextStyle(color: AppColors.textHint),
+            enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: AppColors.border)),
+            focusedBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: AppColors.primary)),
+          ),
+        ),
+      ]),
       actions: [
-        TextButton(onPressed: Get.back, child: const Text('Отмена')),
         TextButton(
+          onPressed: () => Get.back(),
+          child: const Text('Отмена', style: TextStyle(color: AppColors.textHint)),
+        ),
+        ElevatedButton(
           onPressed: () {
+            auth.updateBio(controller.text.trim());
             Get.back();
-            auth.logout();
           },
-          child: const Text('Выйти', style: TextStyle(color: AppColors.error)),
+          child: const Text('Сохранить'),
         ),
       ],
     ));
   }
-}
 
-// ── Settings Screen ───────────────────────────────────────
-
-class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final auth = Get.find<AuthController>();
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text(AppStrings.settings)),
-      body: Obx(() {
-        final user = auth.currentUser.value;
-        return ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            _SettingsToggle(
-              label: AppStrings.hideProfile,
-              value: user?.profilePrivate ?? false,
-              onChanged: (val) async {
-                await UserRepository.updateProfile({'profile_private': val});
-                await auth.refreshProfile();
-              },
+  void _editAvatar(BuildContext ctx, AuthController auth) {
+    final emojis = ['😊', '🧑', '👱‍♀️', '🧔', '👩', '🏃', '👩‍🦰', '🌸', '😎', '🤩', '🦊', '🐼'];
+    Get.dialog(AlertDialog(
+      backgroundColor: AppColors.surface,
+      title: const Text('Выбери аватар', style: TextStyle(color: Colors.white)),
+      content: Wrap(
+        spacing: 12, runSpacing: 12,
+        children: emojis.map((e) => GestureDetector(
+          onTap: () {
+            final user = auth.currentUser.value;
+            if (user != null) {
+              auth.updateUser(user.copyWith(avatarEmoji: e));
+            }
+            Get.back();
+          },
+          child: Container(
+            width: 52, height: 52,
+            decoration: BoxDecoration(
+              color: AppColors.surfaceVariant,
+              borderRadius: BorderRadius.circular(12),
             ),
-          ],
-        );
-      }),
-    );
+            child: Center(child: Text(e, style: const TextStyle(fontSize: 28))),
+          ),
+        )).toList(),
+      ),
+    ));
   }
 }
 
-class _SettingsToggle extends StatelessWidget {
-  final String label;
-  final bool value;
-  final ValueChanged<bool> onChanged;
+// ── Экран настроек ────────────────────────────────────────
+class _SettingsScreen extends StatefulWidget {
+  const _SettingsScreen();
 
-  const _SettingsToggle(
-      {required this.label, required this.value, required this.onChanged});
+  @override
+  State<_SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<_SettingsScreen> {
+  late TextEditingController _nameCtrl;
+  late AuthController _auth;
+
+  @override
+  void initState() {
+    super.initState();
+    _auth = Get.find<AuthController>();
+    _nameCtrl = TextEditingController(
+        text: _auth.currentUser.value?.name ?? '');
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border, width: 0.5),
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.surface,
+        leading: const BackButton(color: Colors.white),
+        title: const Text('Настройки', style: TextStyle(color: Colors.white)),
+        elevation: 0,
       ),
-      child: Row(
+      body: ListView(
+        padding: const EdgeInsets.all(16),
         children: [
-          Expanded(
-              child: Text(label, style: Theme.of(context).textTheme.bodyMedium)),
-          Switch(value: value, onChanged: onChanged),
+          _sectionTitle('Профиль'),
+          _settingItem(
+            title: 'Имя',
+            subtitle: _auth.currentUser.value?.name ?? '',
+            icon: Icons.person_outline,
+            onTap: () => _editName(context),
+          ),
+          _settingItem(
+            title: 'Дата рождения',
+            subtitle: _auth.currentUser.value?.birthDate != null
+                ? '${_auth.currentUser.value!.birthDate!.day}.'
+                  '${_auth.currentUser.value!.birthDate!.month}.'
+                  '${_auth.currentUser.value!.birthDate!.year}'
+                : 'Не указана',
+            icon: Icons.cake_outlined,
+            onTap: () => _editBirthDate(context),
+          ),
+          const SizedBox(height: 16),
+          _sectionTitle('Аккаунт'),
+          _settingItem(
+            title: 'Логин',
+            subtitle: 'Изменение в разработке',
+            icon: Icons.alternate_email,
+            onTap: () => Get.snackbar('', 'Функция в разработке',
+                backgroundColor: AppColors.surface, colorText: Colors.white),
+          ),
+          _settingItem(
+            title: 'Пароль',
+            subtitle: 'Изменение в разработке',
+            icon: Icons.lock_outline,
+            onTap: () => Get.snackbar('', 'Функция в разработке',
+                backgroundColor: AppColors.surface, colorText: Colors.white),
+          ),
         ],
       ),
     );
+  }
+
+  Widget _sectionTitle(String text) => Padding(
+    padding: const EdgeInsets.only(bottom: 8, left: 2),
+    child: Text(text.toUpperCase(),
+        style: const TextStyle(color: AppColors.textHint,
+            fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+  );
+
+  Widget _settingItem({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border, width: 0.5),
+        ),
+        child: Row(children: [
+          Icon(icon, size: 20, color: AppColors.textSecondary),
+          const SizedBox(width: 12),
+          Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(
+                  color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500)),
+              Text(subtitle, style: const TextStyle(
+                  color: AppColors.textSecondary, fontSize: 12)),
+            ],
+          )),
+          const Icon(Icons.chevron_right, color: AppColors.textHint, size: 20),
+        ]),
+      ),
+    );
+  }
+
+  void _editName(BuildContext context) {
+    Get.dialog(AlertDialog(
+      backgroundColor: AppColors.surface,
+      title: const Text('Имя', style: TextStyle(color: Colors.white)),
+      content: TextField(
+        controller: _nameCtrl,
+        style: const TextStyle(color: Colors.white),
+        decoration: const InputDecoration(
+          hintText: 'Введите имя',
+          hintStyle: TextStyle(color: AppColors.textHint),
+          enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: AppColors.border)),
+          focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: AppColors.primary)),
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Get.back(),
+            child: const Text('Отмена', style: TextStyle(color: AppColors.textHint))),
+        ElevatedButton(
+          onPressed: () {
+            _auth.updateName(_nameCtrl.text.trim());
+            Get.back();
+            setState(() {});
+          },
+          child: const Text('Сохранить'),
+        ),
+      ],
+    ));
+  }
+
+  void _editBirthDate(BuildContext context) async {
+    final current = _auth.currentUser.value?.birthDate ?? DateTime(2000, 1, 1);
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: current,
+      firstDate: DateTime(1950),
+      lastDate: DateTime.now().subtract(const Duration(days: 365 * 18)),
+      builder: (ctx, child) => Theme(
+        data: ThemeData.dark().copyWith(
+          colorScheme: const ColorScheme.dark(primary: AppColors.primary),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) {
+      await _auth.updateBirthDate(picked);
+      setState(() {});
+    }
   }
 }

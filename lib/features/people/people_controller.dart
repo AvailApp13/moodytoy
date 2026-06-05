@@ -1,99 +1,48 @@
-import 'dart:async';
 import 'package:get/get.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/services/mock_data.dart';
 import '../../data/models/user_model.dart';
-import '../../data/repositories/user_repository.dart';
-import '../../core/services/location_service.dart';
-import '../../core/services/supabase_service.dart';
 
 class PeopleController extends GetxController {
-  final nearbyUsers = <UserModel>[].obs;
+  final allUsers = <UserModel>[].obs;
   final filteredUsers = <UserModel>[].obs;
-  final mapMode = 'split'.obs;
-  final selectedMoodFilter = Rxn<String>();
-  final isLoading = false.obs;
-  final myPosition = Rxn<Position>();
-
-  RealtimeChannel? _realtimeChannel;
-  Timer? _refreshTimer;
-
-  final LocationService _locationService = Get.find<LocationService>();
+  final selectedMood = Rxn<Mood>(); // null = все
+  final isListMode = true.obs; // true=список, false=карта
 
   @override
   void onInit() {
     super.onInit();
-    _init();
-  }
-
-  Future<void> _init() async {
-    isLoading.value = true;
-    myPosition.value = await _locationService.getCurrentPosition();
-    await _locationService.startTracking();
-    ever(_locationService.currentPosition, (pos) {
-      if (pos != null) {
-        myPosition.value = pos;
-        _loadNearbyUsers();
-      }
-    });
-    await _loadNearbyUsers();
-    _subscribeToRealtime();
-    _startRefreshTimer();
-    isLoading.value = false;
-  }
-
-  Future<void> _loadNearbyUsers() async {
-    if (myPosition.value == null) return;
-    final users = await UserRepository.getNearbyUsers(
-      lat: myPosition.value!.latitude,
-      lng: myPosition.value!.longitude,
-      radiusMeters: 1000,
-    );
-    nearbyUsers.value = users;
+    allUsers.value = MockData.nearbyUsers;
     _applyFilter();
   }
 
-  void setMoodFilter(String? mood) {
-    selectedMoodFilter.value = mood;
+  void setFilter(Mood? mood) {
+    selectedMood.value = mood;
     _applyFilter();
   }
 
   void _applyFilter() {
-    if (selectedMoodFilter.value == null) {
-      filteredUsers.value = nearbyUsers;
+    if (selectedMood.value == null) {
+      filteredUsers.value = List.from(allUsers);
     } else {
-      filteredUsers.value = nearbyUsers
-          .where((u) => u.mood?.value == selectedMoodFilter.value)
+      filteredUsers.value = allUsers
+          .where((u) => u.mood == selectedMood.value)
           .toList();
     }
+    // Сортировка по расстоянию
+    filteredUsers.sort((a, b) =>
+        (a.distanceMeters ?? 99999).compareTo(b.distanceMeters ?? 99999));
   }
 
-  void setMapMode(String mode) => mapMode.value = mode;
-
-  void _subscribeToRealtime() {
-    _realtimeChannel = SupabaseService.client
-        .channel('users-location')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.update,
-          schema: 'public',
-          table: 'users',
-          callback: (_) => _loadNearbyUsers(),
-        )
-        .subscribe();
+  void toggleView() {
+    isListMode.value = !isListMode.value;
   }
 
-  void _startRefreshTimer() {
-    _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) {
-      _loadNearbyUsers();
-    });
-  }
-
-  Future<void> refresh() => _loadNearbyUsers();
-
-  @override
-  void onClose() {
-    _realtimeChannel?.unsubscribe();
-    _refreshTimer?.cancel();
-    super.onClose();
+  String formatDistance(double? meters) {
+    if (meters == null) return '';
+    if (meters < 1000) {
+      final rounded = (meters / 10).round() * 10;
+      return '~${rounded.toInt()}м';
+    }
+    return '~${(meters / 1000).toStringAsFixed(1)}км';
   }
 }

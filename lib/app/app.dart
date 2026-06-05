@@ -1,37 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../core/services/local_storage_service.dart';
+import '../features/auth/auth_controller.dart';
+import '../features/main_nav/main_nav_screen.dart';
 import '../shared/theme/app_theme.dart';
-import '../core/services/ble_service.dart';
-import '../core/services/location_service.dart';
-import '../core/services/push_service.dart';
-import 'routes.dart';
 
 class App extends StatelessWidget {
   const App({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Регистрируем глобальные сервисы
-    Get.put(BleService(), permanent: true);
-    Get.put(LocationService(), permanent: true);
-    Get.put(PushService(), permanent: true);
-
-    return GetMaterialApp(
-      title: 'MoodyToy',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark,
-      darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.dark,
-      initialRoute: AppRoutes.login,
-      getPages: AppRoutes.routes,
-      defaultTransition: Transition.cupertino,
-      transitionDuration: const Duration(milliseconds: 250),
-      builder: (context, child) {
-        return MediaQuery(
-          data: MediaQuery.of(context).copyWith(
-            textScaler: TextScaler.noScaling,
-          ),
-          child: child!,
+    return FutureBuilder(
+      future: LocalStorageService.init(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const MaterialApp(
+            home: Scaffold(
+              backgroundColor: Color(0xFF0F0F1A),
+              body: Center(child: CircularProgressIndicator()),
+            ),
+          );
+        }
+        Get.put(AuthController());
+        return GetMaterialApp(
+          title: 'MoodyToy',
+          theme: AppTheme.dark,
+          debugShowCheckedModeBanner: false,
+          home: const MainNavScreen(),
         );
       },
     );

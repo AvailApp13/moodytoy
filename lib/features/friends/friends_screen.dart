@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/constants/app_colors.dart';
-import '../../core/constants/app_strings.dart';
 import '../../data/models/user_model.dart';
-import '../../shared/widgets/mood_indicator.dart';
-import '../../shared/widgets/user_avatar.dart';
+import '../chats/chats_controller.dart';
+import '../chats/chats_screen.dart';
 import 'friends_controller.dart';
 
 class FriendsScreen extends StatelessWidget {
@@ -13,7 +12,6 @@ class FriendsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ctrl = Get.find<FriendsController>();
-
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -21,33 +19,24 @@ class FriendsScreen extends StatelessWidget {
           children: [
             _buildHeader(context, ctrl),
             Expanded(
-              child: Obx(() {
-                if (ctrl.isLoading.value) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                return RefreshIndicator(
-                  onRefresh: ctrl.loadAll,
-                  color: AppColors.primary,
-                  child: ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: [
-                      // Входящие запросы
-                      if (ctrl.incomingRequests.isNotEmpty) ...[
-                        _sectionTitle(context, AppStrings.incomingRequests),
-                        ...ctrl.incomingRequests
-                            .map((r) => _RequestCard(request: r, ctrl: ctrl)),
-                        const SizedBox(height: 16),
-                      ],
-                      // Друзья
-                      _sectionTitle(context, AppStrings.myFriends),
-                      if (ctrl.friends.isEmpty)
-                        _emptyState(context, AppStrings.noFriends)
-                      else
-                        ...ctrl.friends.map((u) => _FriendCard(user: u)),
+              child: GetBuilder<FriendsController>(
+                builder: (c) => ListView(
+                  padding: const EdgeInsets.all(12),
+                  children: [
+                    if (c.incomingRequests.isNotEmpty) ...[
+                      _sectionLabel('ВХОДЯЩИЕ ЗАПРОСЫ'),
+                      ...c.incomingRequests.map(
+                        (u) => _RequestCard(user: u, ctrl: c)),
+                      const SizedBox(height: 12),
                     ],
-                  ),
-                );
-              }),
+                    _sectionLabel('МОИ ДРУЗЬЯ'),
+                    if (c.friends.isEmpty)
+                      _buildEmpty(context)
+                    else
+                      ...c.friends.map((u) => _FriendCard(user: u)),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -58,72 +47,76 @@ class FriendsScreen extends StatelessWidget {
   Widget _buildHeader(BuildContext context, FriendsController ctrl) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      child: Row(
-        children: [
-          Text(AppStrings.friends,
-              style: Theme.of(context).textTheme.headlineMedium),
-          const Spacer(),
-          Obx(() {
-            final count = ctrl.incomingRequests.length;
-            if (count == 0) return const SizedBox.shrink();
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.error.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.error.withOpacity(0.3)),
-              ),
-              child: Text(
-                '${AppStrings.friendRequests} · $count',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.error,
-                  fontWeight: FontWeight.w600,
+      child: Row(children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Друзья',
+                  style: Theme.of(context).textTheme.headlineMedium),
+              GetBuilder<FriendsController>(
+                builder: (c) => Text(
+                  '${c.friends.length} друзей · ${c.incomingRequests.length} запросов',
+                  style: Theme.of(context).textTheme.bodySmall,
                 ),
               ),
-            );
-          }),
-        ],
-      ),
+            ],
+          ),
+        ),
+        GetBuilder<FriendsController>(
+          builder: (c) => c.incomingRequests.isNotEmpty
+              ? Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.error, width: 1),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.notifications_outlined,
+                        size: 14, color: AppColors.error),
+                    const SizedBox(width: 4),
+                    Text('Запросы · ${c.incomingRequests.length}',
+                        style: const TextStyle(
+                            color: AppColors.error, fontSize: 12,
+                            fontWeight: FontWeight.w600)),
+                  ]),
+                )
+              : const SizedBox(),
+        ),
+      ]),
     );
   }
 
-  Widget _sectionTitle(BuildContext context, String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(title,
-          style: Theme.of(context)
-              .textTheme
-              .labelMedium
-              ?.copyWith(color: AppColors.textHint, letterSpacing: 0.5)),
-    );
-  }
+  Widget _sectionLabel(String text) => Padding(
+    padding: const EdgeInsets.only(bottom: 8, top: 4, left: 2),
+    child: Text(text,
+        style: const TextStyle(
+            color: AppColors.textHint, fontSize: 11,
+            fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+  );
 
-  Widget _emptyState(BuildContext context, String text) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 24),
-      child: Center(
-        child: Text(text,
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: AppColors.textHint)),
-      ),
-    );
-  }
+  Widget _buildEmpty(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 40),
+    child: Center(
+      child: Column(children: [
+        const Text('👋', style: TextStyle(fontSize: 48)),
+        const SizedBox(height: 12),
+        Text('Добавьте друзей через экран Люди',
+            style: Theme.of(context).textTheme.bodyMedium),
+      ]),
+    ),
+  );
 }
 
+// ── Карточка входящего запроса ────────────────────────────
 class _RequestCard extends StatelessWidget {
-  final dynamic request;
+  final UserModel user;
   final FriendsController ctrl;
-
-  const _RequestCard({required this.request, required this.ctrl});
+  const _RequestCard({required this.user, required this.ctrl});
 
   @override
   Widget build(BuildContext context) {
-    final user = request.requester as UserModel?;
-    if (user == null) return const SizedBox.shrink();
-
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
@@ -132,69 +125,296 @@ class _RequestCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.border, width: 0.5),
       ),
-      child: Row(
-        children: [
-          UserAvatarWidget(user: user, size: 48),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              user.name,
-              style: Theme.of(context)
-                  .textTheme
-                  .labelLarge
-                  ?.copyWith(color: AppColors.textSecondary),
+      child: Row(children: [
+        Container(
+          width: 46, height: 46,
+          decoration: BoxDecoration(
+            color: AppColors.surfaceVariant,
+            shape: BoxShape.circle,
+          ),
+          child: Center(child: Text(user.avatarEmoji ?? '👤',
+              style: const TextStyle(fontSize: 22))),
+        ),
+        const SizedBox(width: 12),
+        Expanded(child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${user.name}, ${user.age ?? '?'}',
+                style: const TextStyle(color: Colors.white,
+                    fontSize: 15, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 2),
+            const Text('Хочет добавиться в друзья',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+          ],
+        )),
+        Row(children: [
+          GestureDetector(
+            onTap: () => ctrl.acceptRequest(user.id),
+            child: Container(
+              width: 36, height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.success.withOpacity(0.2),
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.success, width: 1),
+              ),
+              child: const Icon(Icons.check, color: AppColors.success, size: 18),
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.check_circle, color: AppColors.success),
-            onPressed: () =>
-                ctrl.acceptRequest(request.id, request.requesterId),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () => ctrl.declineRequest(user.id),
+            child: Container(
+              width: 36, height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.error.withOpacity(0.2),
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.error, width: 1),
+              ),
+              child: const Icon(Icons.close, color: AppColors.error, size: 18),
+            ),
           ),
-          IconButton(
-            icon: const Icon(Icons.cancel_outlined, color: AppColors.error),
-            onPressed: () => ctrl.declineRequest(request.id),
-          ),
-        ],
-      ),
+        ]),
+      ]),
     );
   }
 }
 
+// ── Карточка друга ────────────────────────────────────────
 class _FriendCard extends StatelessWidget {
   final UserModel user;
-
   const _FriendCard({required this.user});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border, width: 0.5),
-      ),
-      child: Row(
-        children: [
-          UserAvatarWidget(user: user, size: 52, showMoodRing: true),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('${user.name}, ${user.age ?? '?'}',
-                    style: Theme.of(context).textTheme.labelLarge),
-                if (user.mood != null) ...[
-                  const SizedBox(height: 4),
-                  MoodChip(mood: user.mood!),
-                ],
-              ],
+    return GestureDetector(
+      onTap: () => _showFriendSheet(context),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border, width: 0.5),
+        ),
+        child: Row(children: [
+          Container(
+            width: 46, height: 46,
+            decoration: BoxDecoration(
+              color: user.mood?.color.withOpacity(0.2) ?? AppColors.surfaceVariant,
+              shape: BoxShape.circle,
+              border: Border.all(
+                  color: user.mood?.color ?? AppColors.border, width: 2),
             ),
+            child: Center(child: Text(user.avatarEmoji ?? '👤',
+                style: const TextStyle(fontSize: 22))),
           ),
-          const Icon(Icons.chevron_right, color: AppColors.textHint),
-        ],
+          const SizedBox(width: 12),
+          Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(user.name, style: const TextStyle(color: Colors.white,
+                  fontSize: 15, fontWeight: FontWeight.w600)),
+              if (user.mood != null)
+                Text('${user.mood!.emoji} ${user.mood!.label}',
+                    style: TextStyle(color: user.mood!.color, fontSize: 12)),
+            ],
+          )),
+          const Icon(Icons.chevron_right, color: AppColors.textHint, size: 20),
+        ]),
       ),
     );
+  }
+
+  void _showFriendSheet(BuildContext context) {
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(width: 40, height: 4,
+            decoration: BoxDecoration(color: AppColors.border,
+                borderRadius: BorderRadius.circular(2))),
+          const SizedBox(height: 20),
+          Row(children: [
+            Container(
+              width: 64, height: 64,
+              decoration: BoxDecoration(
+                color: user.mood?.color.withOpacity(0.2) ?? AppColors.surfaceVariant,
+                shape: BoxShape.circle,
+                border: Border.all(
+                    color: user.mood?.color ?? AppColors.border, width: 2),
+              ),
+              child: Center(child: Text(user.avatarEmoji ?? '👤',
+                  style: const TextStyle(fontSize: 30))),
+            ),
+            const SizedBox(width: 16),
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('${user.name}, ${user.age ?? '?'}',
+                  style: const TextStyle(color: Colors.white,
+                      fontSize: 18, fontWeight: FontWeight.bold)),
+              if (user.mood != null)
+                Text('${user.mood!.emoji} ${user.mood!.label}',
+                    style: TextStyle(color: user.mood!.color, fontSize: 13)),
+              if (user.bio != null)
+                Text(user.bio!,
+                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+            ]),
+          ]),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Get.back();
+                final chatsCtrl = Get.find<ChatsController>();
+                Get.to(() => _ChatPage(
+                  chatId: 'personal_${user.id}',
+                  title: user.name,
+                  color: user.mood?.color ?? AppColors.primary,
+                  avatarEmoji: user.avatarEmoji,
+                ));
+              },
+              icon: const Icon(Icons.chat_bubble_outline, size: 16),
+              label: const Text('Написать'),
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+// Inline import of ChatPage to avoid circular dependency
+class _ChatPage extends StatefulWidget {
+  final String chatId;
+  final String title;
+  final Color color;
+  final String? avatarEmoji;
+  const _ChatPage({required this.chatId, required this.title,
+      required this.color, this.avatarEmoji});
+
+  @override
+  State<_ChatPage> createState() => _ChatPageState();
+}
+
+class _ChatPageState extends State<_ChatPage> {
+  final _textCtrl = TextEditingController();
+  final _scrollCtrl = ScrollController();
+  late ChatsController _chatsCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _chatsCtrl = Get.find<ChatsController>();
+  }
+
+  @override
+  void dispose() { _textCtrl.dispose(); _scrollCtrl.dispose(); super.dispose(); }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.surface,
+        leading: const BackButton(color: Colors.white),
+        title: Text(widget.title,
+            style: const TextStyle(color: Colors.white, fontSize: 16)),
+        elevation: 0,
+      ),
+      body: Column(children: [
+        Expanded(
+          child: GetBuilder<ChatsController>(
+            id: widget.chatId,
+            builder: (ctrl) {
+              final messages = ctrl.getMessages(widget.chatId);
+              if (messages.isEmpty) {
+                return Center(child: Text('Напишите первым!',
+                    style: const TextStyle(color: AppColors.textHint)));
+              }
+              return ListView.builder(
+                controller: _scrollCtrl,
+                padding: const EdgeInsets.all(12),
+                itemCount: messages.length,
+                itemBuilder: (_, i) {
+                  final msg = messages[i];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    child: Row(
+                      mainAxisAlignment: msg.isMe
+                          ? MainAxisAlignment.end
+                          : MainAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: msg.isMe
+                                ? widget.color
+                                : AppColors.surfaceVariant,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Text(msg.text,
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 14)),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            border: Border(top: BorderSide(color: AppColors.border, width: 0.5)),
+          ),
+          child: Row(children: [
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: TextField(
+                  controller: _textCtrl,
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  decoration: const InputDecoration(
+                    hintText: 'Написать...',
+                    hintStyle: TextStyle(color: AppColors.textHint, fontSize: 14),
+                    isDense: true, border: InputBorder.none,
+                  ),
+                  onSubmitted: (_) => _send(),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: _send,
+              child: Container(
+                width: 44, height: 44,
+                decoration: BoxDecoration(
+                    color: widget.color, shape: BoxShape.circle),
+                child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+              ),
+            ),
+          ]),
+        ),
+      ]),
+    );
+  }
+
+  void _send() {
+    final text = _textCtrl.text.trim();
+    if (text.isEmpty) return;
+    _textCtrl.clear();
+    _chatsCtrl.sendMessage(widget.chatId, text);
   }
 }
