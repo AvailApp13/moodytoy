@@ -8,6 +8,7 @@ class Message {
   final String id;
   final String senderId;
   final String text;
+  final String? imageBase64;
   final DateTime time;
   final bool isMe;
 
@@ -15,6 +16,7 @@ class Message {
     required this.id,
     required this.senderId,
     required this.text,
+    this.imageBase64,
     required this.time,
     required this.isMe,
   });
@@ -23,6 +25,7 @@ class Message {
     'id': id,
     'senderId': senderId,
     'text': text,
+    'imageBase64': imageBase64,
     'time': time.toIso8601String(),
     'isMe': isMe,
   };
@@ -31,19 +34,18 @@ class Message {
     id: json['id'] ?? '',
     senderId: json['senderId'] ?? '',
     text: json['text'] ?? '',
+    imageBase64: json['imageBase64'],
     time: DateTime.tryParse(json['time'] ?? '') ?? DateTime.now(),
     isMe: json['isMe'] ?? false,
   );
 }
 
 class ChatsController extends GetxController {
-  // Общие чаты по настроениям
   static const List<Mood> moodChats = [
     Mood.coffee, Mood.gamer, Mood.dating, Mood.walk, Mood.sport,
   ];
 
-  // Личные чаты (с друзьями)
-  final personalChats = <String>[].obs; // friend ids
+  final personalChats = <String>[].obs;
 
   @override
   void onInit() {
@@ -70,27 +72,32 @@ class ChatsController extends GetxController {
       isMe: true,
     );
     await LocalStorageService.addMessage(chatId, msg.toJson());
-
-    // Добавляем авто-ответ в общих чатах через 1 сек
     if (moodChats.map((m) => m.value).contains(chatId)) {
       _addAutoReply(chatId);
     }
     update([chatId]);
   }
 
-  void _addAutoReply(String chatId) {
-    final replies = [
-      'Привет! 👋', 'Тоже здесь!', 'Отличное настроение 😊',
-      'Кто ещё тут?', 'Всем привет!', '🎉', 'Ого, нас уже много!',
-    ];
-    final mood = Mood.values.firstWhere(
-      (m) => m.value == chatId, orElse: () => Mood.coffee,
+  Future<void> sendImageMessage(String chatId, String base64) async {
+    final auth = Get.find<AuthController>();
+    final msg = Message(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      senderId: auth.currentUser.value?.id ?? 'me',
+      text: '',
+      imageBase64: base64,
+      time: DateTime.now(),
+      isMe: true,
     );
-    final users = MockData.nearbyUsers
-        .where((u) => u.mood == mood)
-        .toList();
-    if (users.isEmpty) return;
+    await LocalStorageService.addMessage(chatId, msg.toJson());
+    update([chatId]);
+  }
 
+  void _addAutoReply(String chatId) {
+    final replies = ['Привет! 👋', 'Тоже здесь!', '😊', 'Всем привет!', '🎉'];
+    final mood = Mood.values.firstWhere(
+      (m) => m.value == chatId, orElse: () => Mood.coffee);
+    final users = MockData.nearbyUsers.where((u) => u.mood == mood).toList();
+    if (users.isEmpty) return;
     Future.delayed(const Duration(milliseconds: 1200), () async {
       final user = users[DateTime.now().millisecond % users.length];
       final reply = replies[DateTime.now().millisecond % replies.length];

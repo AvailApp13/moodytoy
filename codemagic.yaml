@@ -18,21 +18,12 @@ workflows:
 
       - name: Recreate iOS project
         script: |
-          # Сохраняем наш Info.plist со всеми разрешениями
           cp ios/Runner/Info.plist /tmp/Info.plist
           cp ios/Flutter/AppFrameworkInfo.plist /tmp/AppFrameworkInfo.plist
-
-          # Удаляем сломанный ios/ полностью
           rm -rf ios/
-
-          # Flutter создаёт правильный ios/ с нуля
           flutter create --platforms=ios --org com.moodytoy --project-name app .
-
-          # Восстанавливаем наш Info.plist (BLE, геолокация, камера и т.д.)
           cp /tmp/Info.plist ios/Runner/Info.plist
           cp /tmp/AppFrameworkInfo.plist ios/Flutter/AppFrameworkInfo.plist
-
-          # Прописываем Team ID и iOS 14
           sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = F2MD3735EJ;/g' \
             ios/Runner.xcodeproj/project.pbxproj
           sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 12.0/IPHONEOS_DEPLOYMENT_TARGET = 14.0/g' \
@@ -51,6 +42,18 @@ workflows:
             --release \
             --export-options-plist=$HOME/export_options.plist
 
+      - name: Package IPA into ZIP
+        script: |
+          mkdir -p build/output
+          IPA=$(find build/ios/ipa -name "*.ipa" | head -1)
+          if [ -n "$IPA" ]; then
+            cp "$IPA" build/output/moodytoy.ipa
+            cd build/output
+            zip moodytoy_release.zip moodytoy.ipa
+            echo "ZIP created: moodytoy_release.zip"
+          fi
+
     artifacts:
+      - build/output/moodytoy_release.zip
+      - build/output/moodytoy.ipa
       - build/ios/ipa/*.ipa
-      - build/ios/archive/*.xcarchive
