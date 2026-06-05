@@ -1,42 +1,40 @@
-# Flutter
+```
+# Dependencies
 .dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
 .packages
 .pub-cache/
-.pub/
+pubspec.lock
+
+# Build artifacts
 build/
-*.iml
+**/generated_plugin_registrant.*
 
-# Environment
+# Logs
+*.log
+**/logs
 
-# IDE
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+
+# IDE specific
 .idea/
 .vscode/
 *.swp
 *.swo
 
-# iOS
-ios/Pods/
-ios/.symlinks/
-ios/Flutter/Flutter.framework
-ios/Flutter/Flutter.podspec
-ios/Runner/GeneratedPluginRegistrant.*
-*.xcworkspace
-!default.xcworkspace
-
-# Android
-android/.gradle/
-android/captures/
-android/gradlew
-android/gradlew.bat
-android/local.properties
-android/**/GeneratedPluginRegistrant.java
-android/key.properties
-
-# macOS
-macos/Flutter/GeneratedPluginRegistrant.swift
-
-# Misc
-*.log
+# Coverage
 coverage/
+
+# Flutter/Dart specific
+**/lib/**/__pycache__/
+```

@@ -7,6 +7,7 @@ import '../../data/repositories/user_repository.dart';
 import '../../shared/widgets/mood_indicator.dart';
 import '../../shared/widgets/user_avatar.dart';
 import '../auth/auth_controller.dart';
+import '../friends/friends_controller.dart';
 import 'people_controller.dart';
 import 'widgets/people_list.dart';
 
@@ -20,12 +21,23 @@ class PeopleScreen extends StatefulWidget {
 class _PeopleScreenState extends State<PeopleScreen> {
   late final PeopleController _ctrl;
   late final AuthController _auth;
+  late final FriendsController _friendsCtrl;
+
+  final List<String> _moodFilters = [
+    AppStrings.filterAll,
+    AppStrings.moodCoffeeBreak,
+    AppStrings.moodGamer,
+    AppStrings.moodDating,
+    AppStrings.moodWalk,
+    AppStrings.moodSport,
+  ];
 
   @override
   void initState() {
     super.initState();
     _ctrl = Get.put(PeopleController());
     _auth = Get.find<AuthController>();
+    _friendsCtrl = Get.find<FriendsController>();
   }
 
   @override
@@ -36,9 +48,10 @@ class _PeopleScreenState extends State<PeopleScreen> {
         child: Column(
           children: [
             _buildHeader(),
+            _buildMoodFilter(),
             Expanded(
-              child: Obx(() => _ctrl.mapMode.value == 'split'
-                  ? _buildSplitView()
+              child: Obx(() => _ctrl.isMapView.value
+                  ? _buildMapView()
                   : _buildListView()),
             ),
           ],
@@ -60,26 +73,45 @@ class _PeopleScreenState extends State<PeopleScreen> {
                     style: Theme.of(context).textTheme.headlineMedium),
                 Obx(() {
                   final count = _ctrl.filteredUsers.length;
-                  return Text('$count человека рядом',
+                  return Text('$count человек рядом',
                       style: Theme.of(context).textTheme.bodySmall);
                 }),
               ],
             ),
           ),
           Obx(() {
-            final isListMode = _ctrl.mapMode.value == 'list';
-            if (isListMode) {
-              return _headerButton(AppStrings.mapView, Icons.map_outlined,
-                  () => _ctrl.setMapMode('split'));
-            }
+            final isListMode = !_ctrl.isMapView.value;
             return Row(children: [
-              _headerButton(AppStrings.meButton, Icons.my_location, () {}),
-              const SizedBox(width: 8),
-              _headerButton(AppStrings.listView, Icons.list,
-                  () => _ctrl.setMapMode('list')),
+              if (!isListMode)
+                _headerButton(AppStrings.listView, Icons.list,
+                    () => _ctrl.toggleMapView()),
+              if (isListMode)
+                _headerButton(AppStrings.mapView, Icons.map_outlined,
+                    () => _ctrl.toggleMapView()),
             ]);
           }),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMoodFilter() {
+    return SizedBox(
+      height: 44,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: _moodFilters.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (_, i) {
+          final mood = _moodFilters[i];
+          final isSelected = _ctrl.selectedMoodFilter.value == mood;
+          return _MoodFilterChip(
+            label: mood,
+            isSelected: isSelected,
+            onTap: () => _ctrl.setMoodFilter(mood == AppStrings.filterAll ? null : mood),
+          );
+        },
       ),
     );
   }
@@ -103,43 +135,24 @@ class _PeopleScreenState extends State<PeopleScreen> {
     );
   }
 
-  Widget _buildSplitView() {
-    return Column(children: [
-      Expanded(child: _buildMapPlaceholder()),
-      _buildLocationToggle(),
-      Expanded(child: PeopleList(controller: _ctrl)),
-    ]);
-  }
-
-  Widget _buildListView() {
-    return Column(children: [
-      _buildLocationToggle(),
-      Expanded(child: PeopleList(controller: _ctrl)),
-    ]);
-  }
-
-  Widget _buildMapPlaceholder() {
-    return Container(
-      color: const Color(0xFF1A1A2E),
-      child: Stack(children: [
-        CustomPaint(size: Size.infinite, painter: _MapGridPainter()),
+  Widget _buildMapView() {
+    return Stack(
+      children: [
+        Container(color: const Color(0xFF1A1A2E)),
         Center(child: _PulsingDot()),
-        Positioned(
-          right: 12, top: 12,
-          child: Column(children: [
-            _ZoomButton(icon: Icons.add, onTap: () {}),
-            const SizedBox(height: 4),
-            _ZoomButton(icon: Icons.remove, onTap: () {}),
-          ]),
-        ),
         Obx(() => Stack(
-          children: _ctrl.filteredUsers.take(5).map((u) => _buildMapMarker(u)).toList(),
+          children: _ctrl.filteredUsers.take(10).map((u) => _buildMapMarker(u)).toList(),
         )),
-      ]),
+      ],
     );
   }
 
+  Widget _buildListView() {
+    return PeopleList(controller: _ctrl, friendsCtrl: _friendsCtrl);
+  }
+
   Widget _buildMapMarker(UserModel user) {
+    // Заглушка - просто случайные позиции для демонстрации
     final positions = [
       const Offset(0.25, 0.3), const Offset(0.65, 0.35),
       const Offset(0.15, 0.6), const Offset(0.75, 0.65), const Offset(0.5, 0.2),
@@ -148,74 +161,81 @@ class _PeopleScreenState extends State<PeopleScreen> {
     final pos = positions[idx];
     return Positioned(
       left: MediaQuery.of(context).size.width * pos.dx - 20,
-      top: (MediaQuery.of(context).size.height * 0.4) * pos.dy,
+      top: MediaQuery.of(context).size.height * 0.6 * pos.dy,
       child: GestureDetector(
-        onTap: () => _showUserMiniCard(user),
+        onTap: () => _showUserBottomSheet(user),
         child: UserAvatarWidget(user: user, size: 40, showMoodRing: true),
       ),
     );
   }
 
-  Widget _buildLocationToggle() {
-    return Obx(() {
-      final user = _auth.currentUser.value;
-      final hasKeyfob = user?.hasKeyfob ?? false;
-      final isEnabled = user?.locationEnabled ?? false;
-
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        child: GestureDetector(
-          onTap: hasKeyfob
-              ? () async {
-                  await UserRepository.toggleLocation(!isEnabled);
-                  await _auth.refreshProfile();
-                }
-              : () => Get.snackbar('🔑 Нужен брелок', AppStrings.needKeyfob,
-                    duration: const Duration(seconds: 2)),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            decoration: BoxDecoration(
-              color: isEnabled
-                  ? AppColors.primary.withOpacity(0.15)
-                  : AppColors.surfaceVariant,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isEnabled ? AppColors.primary : AppColors.border,
-                width: isEnabled ? 1 : 0.5,
-              ),
-            ),
-            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Icon(
-                isEnabled ? Icons.location_on : Icons.location_off_outlined,
-                size: 16,
-                color: isEnabled ? AppColors.primary : AppColors.textHint,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                isEnabled
-                    ? AppStrings.visibleOnMap
-                    : (!hasKeyfob ? AppStrings.needKeyfob : AppStrings.shareLocation),
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: isEnabled ? AppColors.primary : AppColors.textHint,
-                ),
-              ),
-            ]),
-          ),
-        ),
-      );
-    });
-  }
-
-  void _showUserMiniCard(UserModel user) {
+  void _showUserBottomSheet(UserModel user) {
     Get.bottomSheet(
-      _UserMiniCard(user: user),
+      _UserDetailSheet(user: user, friendsCtrl: _friendsCtrl),
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+    );
+  }
+}
+
+class _MoodFilterChip extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _MoodFilterChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    Mood? mood;
+    switch (label) {
+      case AppStrings.moodCoffeeBreak: mood = Mood.coffeeBreak; break;
+      case AppStrings.moodGamer: mood = Mood.gamer; break;
+      case AppStrings.moodDating: mood = Mood.dating; break;
+      case AppStrings.moodWalk: mood = Mood.walk; break;
+      case AppStrings.moodSport: mood = Mood.sport; break;
+    }
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected 
+              ? (mood?.color ?? AppColors.primary).withOpacity(0.2)
+              : AppColors.surfaceVariant,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected 
+                ? (mood?.color ?? AppColors.primary)
+                : AppColors.border,
+            width: isSelected ? 1.5 : 0.5,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (mood != null)
+              Icon(mood.icon, size: 14, color: mood.color),
+            if (mood != null) const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                color: isSelected 
+                    ? (mood?.color ?? AppColors.primary)
+                    : AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -275,53 +295,17 @@ class _PulsingDotState extends State<_PulsingDot> with SingleTickerProviderState
   }
 }
 
-class _ZoomButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-  const _ZoomButton({required this.icon, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 32, height: 32,
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.border, width: 0.5),
-        ),
-        child: Icon(icon, size: 18, color: AppColors.textSecondary),
-      ),
-    );
-  }
-}
-
-class _MapGridPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = AppColors.border.withOpacity(0.3)
-      ..strokeWidth = 0.5;
-    const step = 30.0;
-    for (double x = 0; x < size.width; x += step) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-    for (double y = 0; y < size.height; y += step) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_) => false;
-}
-
-class _UserMiniCard extends StatelessWidget {
+class _UserDetailSheet extends StatelessWidget {
   final UserModel user;
-  const _UserMiniCard({required this.user});
+  final FriendsController friendsCtrl;
+
+  const _UserDetailSheet({required this.user, required this.friendsCtrl});
 
   @override
   Widget build(BuildContext context) {
+    final status = friendsCtrl.getFriendStatusWith(user.id);
+    final isIncoming = friendsCtrl.incomingRequests.any((r) => r.requesterId == user.id);
+
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -344,22 +328,92 @@ class _UserMiniCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 MoodChip(mood: user.mood!),
               ],
-              if (user.distanceMeters != null)
-                Text(AppStrings.distance(user.distanceMeters!),
-                    style: Theme.of(context).textTheme.bodySmall),
             ],
           )),
         ]),
         const SizedBox(height: 16),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: () => Get.back(),
-            child: const Text(AppStrings.addFriend),
-          ),
-        ),
+        if (user.bio != null && user.bio!.isNotEmpty)
+          Text(user.bio!, style: Theme.of(context).textTheme.bodyMedium),
+        const SizedBox(height: 16),
+        _buildActionButton(context, status, isIncoming),
         const SizedBox(height: 8),
       ]),
     );
+  }
+
+  Widget _buildActionButton(BuildContext context, dynamic status, bool isIncoming) {
+    if (status == FriendshipStatus.accepted) {
+      // Уже друзья - кнопка "Написать"
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: () {
+            // Открыть чат с другом
+            Get.back();
+            Get.snackbar('Чат', 'Открывается чат с ${user.name}');
+          },
+          icon: const Icon(Icons.chat),
+          label: const Text('Написать'),
+        ),
+      );
+    } else if (isIncoming) {
+      // Входящий запрос - кнопки Принять/Отклонить
+      return Row(
+        children: [
+          Expanded(
+            child: ElevatedButton(
+              onPressed: () {
+                // Найти запрос и принять
+                final request = friendsCtrl.incomingRequests.firstWhere(
+                  (r) => r.requesterId == user.id,
+                );
+                friendsCtrl.acceptRequest(request.id, user.id);
+                Get.back();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.success,
+              ),
+              child: const Text('Принять'),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: OutlinedButton(
+              onPressed: () {
+                final request = friendsCtrl.incomingRequests.firstWhere(
+                  (r) => r.requesterId == user.id,
+                );
+                friendsCtrl.declineRequest(request.id);
+                Get.back();
+              },
+              child: const Text('Отклонить'),
+            ),
+          ),
+        ],
+      );
+    } else if (status == FriendshipStatus.pending) {
+      // Исходящий запрос отправлен
+      return SizedBox(
+        width: double.infinity,
+        child: OutlinedButton(
+          onPressed: null,
+          child: const Text('Запрос отправлен'),
+        ),
+      );
+    } else {
+      // Нет статуса - отправить запрос
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: () {
+            friendsCtrl.sendRequest(user.id);
+            Get.back();
+            Get.snackbar('Дружба', 'Запрос отправлен пользователю ${user.name}');
+          },
+          icon: const Icon(Icons.person_add),
+          label: const Text('+ Друг'),
+        ),
+      );
+    }
   }
 }
