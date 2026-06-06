@@ -62,20 +62,20 @@ class _MainNavScreenState extends State<MainNavScreen> {
           selectedLabelStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
           unselectedLabelStyle: const TextStyle(fontSize: 10),
           items: [
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.people_outline),
-              activeIcon: Icon(Icons.people),
-              label: 'Люди',
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.people_outline),
+              activeIcon: const Icon(Icons.people),
+              label: 'tab_people'.tr,
             ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.toys_outlined),
-              activeIcon: Icon(Icons.toys),
-              label: 'Коллекция',
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.toys_outlined),
+              activeIcon: const Icon(Icons.toys),
+              label: 'tab_collection'.tr,
             ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.chat_bubble_outline),
-              activeIcon: Icon(Icons.chat_bubble),
-              label: 'Чаты',
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.chat_bubble_outline),
+              activeIcon: const Icon(Icons.chat_bubble),
+              label: 'tab_chats'.tr,
             ),
             BottomNavigationBarItem(
               icon: GetBuilder<FriendsController>(
@@ -87,12 +87,12 @@ class _MainNavScreenState extends State<MainNavScreen> {
                 ),
               ),
               activeIcon: const Icon(Icons.people_alt),
-              label: 'Друзья',
+              label: 'tab_friends'.tr,
             ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: 'Я',
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.person_outline),
+              activeIcon: const Icon(Icons.person),
+              label: 'tab_me'.tr,
             ),
           ],
         ),

@@ -1,4 +1,6 @@
 import 'package:image_picker/image_picker.dart';
+import '../../core/services/language_service.dart';
+import '../language/language_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/constants/app_colors.dart';
@@ -407,13 +409,13 @@ class _SettingsScreenState extends State<_SettingsScreen> {
         children: [
           _sectionTitle('Профиль'),
           _settingItem(
-            title: 'Имя',
+            title: 'settings_name'.tr,
             subtitle: _auth.currentUser.value?.name ?? '',
             icon: Icons.person_outline,
             onTap: () => _editName(context),
           ),
           _settingItem(
-            title: 'Дата рождения',
+            title: 'settings_birthday'.tr,
             subtitle: _auth.currentUser.value?.birthDate != null
                 ? '${_auth.currentUser.value!.birthDate!.day}.'
                   '${_auth.currentUser.value!.birthDate!.month}.'
@@ -425,19 +427,22 @@ class _SettingsScreenState extends State<_SettingsScreen> {
           const SizedBox(height: 16),
           _sectionTitle('Аккаунт'),
           _settingItem(
-            title: 'Логин',
-            subtitle: 'Изменение в разработке',
+            title: 'settings_login'.tr,
+            subtitle: 'settings_wip'.tr,
             icon: Icons.alternate_email,
             onTap: () => Get.snackbar('', 'Функция в разработке',
                 backgroundColor: AppColors.surface, colorText: Colors.white),
           ),
           _settingItem(
-            title: 'Пароль',
-            subtitle: 'Изменение в разработке',
+            title: 'settings_password'.tr,
+            subtitle: 'settings_wip'.tr,
             icon: Icons.lock_outline,
-            onTap: () => Get.snackbar('', 'Функция в разработке',
+            onTap: () => Get.snackbar('', 'wip_feature'.tr,
                 backgroundColor: AppColors.surface, colorText: Colors.white),
           ),
+          const SizedBox(height: 16),
+          _sectionTitle('settings_language'.tr),
+          _LanguageSettingItem(),
         ],
       ),
     );
@@ -533,5 +538,51 @@ class _SettingsScreenState extends State<_SettingsScreen> {
       await _auth.updateBirthDate(picked);
       setState(() {});
     }
+  }
+}
+
+// ── Виджет выбора языка в настройках ─────────────────────
+class _LanguageSettingItem extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: LanguageService.supportedLocales.map((lang) {
+        final currentCode = LanguageService.getSavedLanguage() ?? 'ru';
+        final isSelected = currentCode == lang['code'];
+        return GestureDetector(
+          onTap: () async {
+            await LanguageService.setLanguage(lang['code']!, lang['country']!);
+          },
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? AppColors.primary.withOpacity(0.1)
+                  : AppColors.card,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: isSelected ? AppColors.primary : AppColors.border,
+                width: isSelected ? 1.5 : 0.5,
+              ),
+            ),
+            child: Row(children: [
+              Text(lang['flag']!, style: const TextStyle(fontSize: 24)),
+              const SizedBox(width: 12),
+              Text(lang['name']!,
+                  style: TextStyle(
+                    color: isSelected ? AppColors.primary : Colors.white,
+                    fontSize: 16,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  )),
+              const Spacer(),
+              if (isSelected)
+                const Icon(Icons.check_circle,
+                    color: AppColors.primary, size: 20),
+            ]),
+          ),
+        );
+      }).toList(),
+    );
   }
 }
