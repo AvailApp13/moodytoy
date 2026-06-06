@@ -387,7 +387,7 @@ class _ChatPageState extends State<_ChatPage> {
                 child: TextField(
                   controller: _textCtrl,
                   style: const TextStyle(color: Colors.white, fontSize: 14),
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: 'Написать...',
                     hintStyle: TextStyle(color: AppColors.textHint, fontSize: 14),
                     isDense: true, border: InputBorder.none,

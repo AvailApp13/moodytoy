@@ -358,7 +358,7 @@ class _ChatPageState extends State<ChatPage> {
             child: TextField(
               controller: _textCtrl,
               style: const TextStyle(color: Colors.white, fontSize: 14),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'input_placeholder'.tr,
                 hintStyle: TextStyle(color: AppColors.textHint, fontSize: 14),
                 isDense: true, border: InputBorder.none,
@@ -509,9 +509,9 @@ class _MessageBubble extends StatelessWidget {
         child: Image.memory(bytes, width: 200, height: 200, fit: BoxFit.cover),
       );
     } catch (_) {
-      return const Padding(
-        padding: EdgeInsets.all(12),
-        child: Text('chats_photo'.tr, style: TextStyle(color: Colors.white)),
+      return Padding(
+        padding: const EdgeInsets.all(12),
+        child: Text('chats_photo'.tr, style: const TextStyle(color: Colors.white)),
       );
     }
   }

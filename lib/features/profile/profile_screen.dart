@@ -312,7 +312,7 @@ class ProfileScreen extends StatelessWidget {
           style: const TextStyle(color: Colors.white),
           maxLength: 200,
           maxLines: 4,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             hintText: 'dialog_bio_hint'.tr,
             hintStyle: TextStyle(color: AppColors.textHint),
             counterStyle: TextStyle(color: AppColors.textHint),
@@ -496,7 +496,7 @@ class _SettingsScreenState extends State<_SettingsScreen> {
       content: TextField(
         controller: _nameCtrl,
         style: const TextStyle(color: Colors.white),
-        decoration: const InputDecoration(
+        decoration: InputDecoration(
           hintText: 'dialog_name_hint'.tr,
           hintStyle: TextStyle(color: AppColors.textHint),
           enabledBorder: UnderlineInputBorder(
