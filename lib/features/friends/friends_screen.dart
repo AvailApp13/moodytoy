@@ -1,3 +1,4 @@
+import '../../shared/widgets/translated_text.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/constants/app_colors.dart';
@@ -259,7 +260,7 @@ class _FriendCard extends StatelessWidget {
                 Text('${user.mood!.emoji} ${user.mood!.label}',
                     style: TextStyle(color: user.mood!.color, fontSize: 13)),
               if (user.bio != null)
-                Text(user.bio!,
+                TranslatedText(user.bio,
                     style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
             ]),
           ]),

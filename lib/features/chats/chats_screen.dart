@@ -1,3 +1,4 @@
+import '../../shared/widgets/translated_text.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';

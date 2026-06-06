@@ -1,3 +1,4 @@
+import '../../shared/widgets/translated_text.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/constants/app_colors.dart';
@@ -156,7 +157,7 @@ class _CollectionScreenState extends State<CollectionScreen>
           Text(shop['emoji'] as String,
               style: const TextStyle(fontSize: 48)),
           const SizedBox(height: 12),
-          Text(shop['name'] as String,
+          TranslatedText(shop['name'] as String,
               style: const TextStyle(color: Colors.white,
                   fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 4),
@@ -164,7 +165,7 @@ class _CollectionScreenState extends State<CollectionScreen>
             const Icon(Icons.location_on_outlined,
                 size: 14, color: AppColors.textSecondary),
             const SizedBox(width: 4),
-            Text(shop['address'] as String,
+            TranslatedText(shop['address'] as String,
                 style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
           ]),
           const SizedBox(height: 20),
@@ -201,7 +202,7 @@ class _ToyCard extends StatelessWidget {
           Text(toy['emoji'] as String,
               style: const TextStyle(fontSize: 44)),
           const SizedBox(height: 8),
-          Text(toy['name'] as String,
+          TranslatedText(toy['name'] as String,
               style: const TextStyle(color: Colors.white,
                   fontSize: 14, fontWeight: FontWeight.w600)),
           const SizedBox(height: 2),
@@ -290,7 +291,7 @@ class _ShopPin extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.surface, borderRadius: BorderRadius.circular(6),
             ),
-            child: Text(shop['name'] as String,
+            child: TranslatedText(shop['name'] as String,
                 style: const TextStyle(color: Colors.white, fontSize: 9),
                 maxLines: 1, overflow: TextOverflow.ellipsis),
           ),

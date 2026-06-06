@@ -1,3 +1,4 @@
+import 'translation_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'local_storage_service.dart';
@@ -24,6 +25,8 @@ class LanguageService {
   /// Переключить язык и сохранить
   static Future<void> setLanguage(String code, String country) async {
     await LocalStorageService.prefs.setString(_key, code);
+    // Очищаем кэш переводов при смене языка
+    await TranslationService.clearCache();
     Get.updateLocale(Locale(code, country));
   }
 

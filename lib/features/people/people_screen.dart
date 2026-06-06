@@ -1,3 +1,4 @@
+import '../../shared/widgets/translated_text.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/constants/app_colors.dart';
@@ -240,7 +241,7 @@ class _PeopleScreenState extends State<PeopleScreen> {
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Text(user.name,
+            child: TranslatedText(user.name,
                 style: const TextStyle(fontSize: 10, color: Colors.white)),
           ),
         ]),

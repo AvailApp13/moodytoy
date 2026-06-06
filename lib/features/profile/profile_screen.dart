@@ -1,3 +1,4 @@
+import '../../shared/widgets/translated_text.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/services/language_service.dart';
 import '../language/language_screen.dart';
@@ -131,8 +132,8 @@ class ProfileScreen extends StatelessWidget {
                       style: TextStyle(color: AppColors.textHint, fontSize: 12)),
                 ]),
                 const SizedBox(height: 4),
-                Text(
-                  user.bio?.isNotEmpty == true ? user.bio! : 'Нажмите чтобы добавить описание...',
+                TranslatedText(
+                  user.bio?.isNotEmpty == true ? user.bio : null,
                   style: TextStyle(
                     color: user.bio?.isNotEmpty == true
                         ? AppColors.textPrimary
