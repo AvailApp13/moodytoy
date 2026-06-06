@@ -42,18 +42,29 @@ workflows:
             --release \
             --export-options-plist=$HOME/export_options.plist
 
-      - name: Package IPA into ZIP
+      - name: Package artifacts into ZIP
         script: |
           mkdir -p build/output
+
+          # IPA → ZIP (для Transporter)
           IPA=$(find build/ios/ipa -name "*.ipa" | head -1)
           if [ -n "$IPA" ]; then
             cp "$IPA" build/output/moodytoy.ipa
-            cd build/output
-            zip moodytoy_release.zip moodytoy.ipa
-            echo "ZIP created: moodytoy_release.zip"
+            cd build/output && zip moodytoy_ipa.zip moodytoy.ipa
+            cd -
+            echo "✅ moodytoy_ipa.zip created"
+          fi
+
+          # Runner.xcarchive → ZIP (для Xcode Organizer)
+          ARCHIVE=$(find build/ios/archive -name "*.xcarchive" -type d | head -1)
+          if [ -n "$ARCHIVE" ]; then
+            cd build/ios/archive
+            zip -r ../../output/Runner_xcarchive.zip "$(basename "$ARCHIVE")"
+            cd -
+            echo "✅ Runner_xcarchive.zip created"
           fi
 
     artifacts:
-      - build/output/moodytoy_release.zip
+      - build/output/moodytoy_ipa.zip
       - build/output/moodytoy.ipa
-      - build/ios/ipa/*.ipa
+      - build/output/Runner_xcarchive.zip
