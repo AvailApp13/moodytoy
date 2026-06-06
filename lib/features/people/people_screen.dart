@@ -310,13 +310,21 @@ class _PeopleCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    '${user.name}, ${user.age ?? '?'}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  Row(
+                    children: [
+                      TranslatedText(user.name,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        )),
+                      Text(', ${user.age ?? '?'}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        )),
+                    ],
                   ),
                   const SizedBox(height: 4),
                   if (user.mood != null)
@@ -454,9 +462,14 @@ class _UserBottomSheet extends StatelessWidget {
           Expanded(child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('${user.name}, ${user.age ?? '?'}',
-                  style: const TextStyle(color: Colors.white, fontSize: 20,
-                      fontWeight: FontWeight.bold)),
+              Row(children: [
+                TranslatedText(user.name,
+                    style: const TextStyle(color: Colors.white, fontSize: 20,
+                        fontWeight: FontWeight.bold)),
+                Text(', ${user.age ?? '?'}',
+                    style: const TextStyle(color: Colors.white, fontSize: 20,
+                        fontWeight: FontWeight.bold)),
+              ]),
               if (user.mood != null) ...[
                 const SizedBox(height: 4),
                 Row(children: [
