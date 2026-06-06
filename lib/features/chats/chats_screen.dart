@@ -51,11 +51,11 @@ class _ChatsScreenState extends State<ChatsScreen>
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
         child: Align(alignment: Alignment.centerLeft,
-            child: Text('Чаты', style: Theme.of(context).textTheme.headlineMedium)),
+            child: Text('chats_title'.tr, style: Theme.of(context).textTheme.headlineMedium)),
       ),
       TabBar(
         controller: _tab,
-        tabs: const [Tab(text: 'Общие'), Tab(text: 'Личные')],
+        tabs: const [Tab(text: 'chats_general'.tr), Tab(text: 'chats_personal'.tr)],
         labelColor: AppColors.primary,
         unselectedLabelColor: AppColors.textSecondary,
         indicatorColor: AppColors.primary,
@@ -122,7 +122,7 @@ class _ChatsScreenState extends State<ChatsScreen>
                             color: mood.color,
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Text('Активен',
+                          child: Text('chats_active'.tr,
                               style: TextStyle(fontSize: 10, color: Colors.white)),
                         ),
                       ],
@@ -131,14 +131,14 @@ class _ChatsScreenState extends State<ChatsScreen>
                     if (lastMsg != null)
                       Text(
                         lastMsg.imageBase64 != null
-                            ? '📷 Фото'
+                            ? 'chats_photo'.tr
                             : '${_ctrl.getSenderName(lastMsg.senderId)}: ${lastMsg.text}',
                         style: const TextStyle(
                             color: AppColors.textSecondary, fontSize: 12),
                         maxLines: 1, overflow: TextOverflow.ellipsis,
                       )
                     else
-                      const Text('Начните общение',
+                      Text('chats_start'.tr,
                           style: TextStyle(color: AppColors.textHint, fontSize: 12)),
                   ],
                 )),
@@ -211,14 +211,14 @@ class _ChatsScreenState extends State<ChatsScreen>
                       if (lastMsg != null)
                         Text(
                           lastMsg.imageBase64 != null
-                              ? (lastMsg.isMe ? 'Вы: 📷 Фото' : '📷 Фото')
-                              : (lastMsg.isMe ? 'Вы: ${lastMsg.text}' : lastMsg.text),
+                              ? (lastMsg.isMe ? 'Вы: 📷 Фото' : 'chats_photo'.tr)
+                              : (lastMsg.isMe ? '${'chats_me_prefix'.tr}${lastMsg.text}' : lastMsg.text),
                           style: const TextStyle(
                               color: AppColors.textSecondary, fontSize: 12),
                           maxLines: 1, overflow: TextOverflow.ellipsis,
                         )
                       else
-                        const Text('Напишите первым',
+                        Text('chats_first'.tr,
                             style: TextStyle(color: AppColors.textHint, fontSize: 12)),
                     ],
                   )),
@@ -301,7 +301,7 @@ class _ChatPageState extends State<ChatPage> {
             builder: (ctrl) {
               final messages = ctrl.getMessages(widget.chatId);
               if (messages.isEmpty) {
-                return Center(child: Text('Начните общение!',
+                return Center(child: Text('chats_begin'.tr,
                     style: TextStyle(color: AppColors.textHint)));
               }
               WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -359,7 +359,7 @@ class _ChatPageState extends State<ChatPage> {
               controller: _textCtrl,
               style: const TextStyle(color: Colors.white, fontSize: 14),
               decoration: const InputDecoration(
-                hintText: 'Написать...',
+                hintText: 'input_placeholder'.tr,
                 hintStyle: TextStyle(color: AppColors.textHint, fontSize: 14),
                 isDense: true, border: InputBorder.none,
               ),
@@ -511,7 +511,7 @@ class _MessageBubble extends StatelessWidget {
     } catch (_) {
       return const Padding(
         padding: EdgeInsets.all(12),
-        child: Text('📷 Фото', style: TextStyle(color: Colors.white)),
+        child: Text('chats_photo'.tr, style: TextStyle(color: Colors.white)),
       );
     }
   }

@@ -1,15 +1,16 @@
-import '../../shared/widgets/translated_text.dart';
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/constants/app_colors.dart';
 import '../../data/models/user_model.dart';
+import '../../shared/widgets/translated_text.dart';
 import '../friends/friends_controller.dart';
 import '../auth/auth_controller.dart';
 import 'people_controller.dart';
 
 class PeopleScreen extends StatefulWidget {
   const PeopleScreen({super.key});
-
   @override
   State<PeopleScreen> createState() => _PeopleScreenState();
 }
@@ -32,17 +33,12 @@ class _PeopleScreenState extends State<PeopleScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-            _buildMoodFilters(),
-            Expanded(
-              child: Obx(() => _ctrl.isListMode.value
-                  ? _buildList()
-                  : _buildMap()),
-            ),
-          ],
-        ),
+        child: Column(children: [
+          _buildHeader(),
+          _buildMoodFilters(),
+          Expanded(child: Obx(() => _ctrl.isListMode.value
+              ? _buildList() : _buildMap())),
+        ]),
       ),
     );
   }
@@ -50,41 +46,37 @@ class _PeopleScreenState extends State<PeopleScreen> {
   Widget _buildHeader() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Люди рядом',
-                    style: Theme.of(context).textTheme.headlineMedium),
-                Obx(() => Text('${_ctrl.filteredUsers.length} человека рядом',
-                    style: Theme.of(context).textTheme.bodySmall)),
-              ],
+      child: Row(children: [
+        Expanded(child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('people_title'.tr,
+                style: Theme.of(context).textTheme.headlineMedium),
+            Obx(() => Text(
+              '${_ctrl.filteredUsers.length} ${'people_nearby'.tr}',
+              style: Theme.of(context).textTheme.bodySmall,
+            )),
+          ],
+        )),
+        Obx(() => GestureDetector(
+          onTap: _ctrl.toggleView,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceVariant,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.border, width: 0.5),
             ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(_ctrl.isListMode.value ? Icons.map_outlined : Icons.list,
+                  size: 14, color: AppColors.textSecondary),
+              const SizedBox(width: 4),
+              Text(_ctrl.isListMode.value ? 'map_btn'.tr : 'list_btn'.tr,
+                  style: Theme.of(context).textTheme.labelMedium),
+            ]),
           ),
-          Obx(() => GestureDetector(
-            onTap: _ctrl.toggleView,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceVariant,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.border, width: 0.5),
-              ),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(
-                  _ctrl.isListMode.value ? Icons.map_outlined : Icons.list,
-                  size: 14, color: AppColors.textSecondary,
-                ),
-                const SizedBox(width: 4),
-                Text(_ctrl.isListMode.value ? 'Карта' : 'Список',
-                    style: Theme.of(context).textTheme.labelMedium),
-              ]),
-            ),
-          )),
-        ],
-      ),
+        )),
+      ]),
     );
   }
 
@@ -112,30 +104,22 @@ class _PeopleScreenState extends State<PeopleScreen> {
                       : AppColors.surfaceVariant,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: selected
-                        ? (mood?.color ?? AppColors.primary)
-                        : AppColors.border,
+                    color: selected ? (mood?.color ?? AppColors.primary) : AppColors.border,
                     width: selected ? 1.5 : 0.5,
                   ),
                 ),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                   if (mood != null) ...[
-                    Container(
-                      width: 8, height: 8,
-                      decoration: BoxDecoration(
-                        color: mood.color, shape: BoxShape.circle,
-                      ),
-                    ),
+                    Container(width: 8, height: 8,
+                        decoration: BoxDecoration(color: mood.color, shape: BoxShape.circle)),
                     const SizedBox(width: 6),
                   ],
                   Text(
-                    mood == null ? 'Все' : mood.label,
+                    mood == null ? 'filter_all'.tr : mood.label,
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                      color: selected
-                          ? (mood?.color ?? AppColors.primary)
-                          : AppColors.textSecondary,
+                      color: selected ? (mood?.color ?? AppColors.primary) : AppColors.textSecondary,
                     ),
                   ),
                 ]),
@@ -150,17 +134,14 @@ class _PeopleScreenState extends State<PeopleScreen> {
   Widget _buildList() {
     return Obx(() {
       if (_ctrl.filteredUsers.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text('😔', style: TextStyle(fontSize: 48)),
-              const SizedBox(height: 12),
-              Text('Никого рядом с таким настроением',
-                  style: Theme.of(context).textTheme.bodyMedium),
-            ],
-          ),
-        );
+        return Center(child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('😔', style: TextStyle(fontSize: 48)),
+            const SizedBox(height: 12),
+            Text('people_nobody'.tr, style: Theme.of(context).textTheme.bodyMedium),
+          ],
+        ));
       }
       return ListView.builder(
         padding: const EdgeInsets.all(12),
@@ -176,35 +157,25 @@ class _PeopleScreenState extends State<PeopleScreen> {
   }
 
   Widget _buildMap() {
-    return Stack(
-      children: [
-        Container(color: const Color(0xFF1A1A2E)),
-        CustomPaint(size: Size.infinite, painter: _GridPainter()),
-        // Пользователь сам
-        const Center(child: _PulsingDot()),
-        // Мок-маркеры других пользователей
-        Obx(() => Stack(
-          children: _ctrl.filteredUsers.take(8).toList().asMap().entries.map((e) {
-            return _buildMapMarker(e.value, e.key);
-          }).toList(),
+    return Stack(children: [
+      Container(color: const Color(0xFF1A1A2E)),
+      CustomPaint(size: Size.infinite, painter: _GridPainter()),
+      const Center(child: _PulsingDot()),
+      Obx(() => Stack(
+        children: _ctrl.filteredUsers.take(8).toList().asMap().entries
+            .map((e) => _buildMapMarker(e.value, e.key)).toList(),
+      )),
+      Positioned(
+        bottom: 16, left: 0, right: 0,
+        child: Center(child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: AppColors.surface, borderRadius: BorderRadius.circular(20)),
+          child: Text('map_label'.tr,
+              style: const TextStyle(color: Colors.white, fontSize: 13)),
         )),
-        // Подсказка
-        Positioned(
-          bottom: 16, left: 0, right: 0,
-          child: Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Text('📍 Вы здесь',
-                  style: TextStyle(color: Colors.white, fontSize: 13)),
-            ),
-          ),
-        ),
-      ],
-    );
+      ),
+    ]);
   }
 
   Widget _buildMapMarker(UserModel user, int index) {
@@ -226,21 +197,15 @@ class _PeopleScreenState extends State<PeopleScreen> {
             decoration: BoxDecoration(
               color: user.mood?.color.withOpacity(0.3) ?? AppColors.surface,
               shape: BoxShape.circle,
-              border: Border.all(
-                color: user.mood?.color ?? AppColors.primary, width: 2,
-              ),
+              border: Border.all(color: user.mood?.color ?? AppColors.primary, width: 2),
             ),
-            child: Center(
-              child: Text(user.avatarEmoji ?? '👤',
-                  style: const TextStyle(fontSize: 22)),
-            ),
+            child: Center(child: Text(user.avatarEmoji ?? '👤',
+                style: const TextStyle(fontSize: 22))),
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(8),
-            ),
+              color: AppColors.surface, borderRadius: BorderRadius.circular(8)),
             child: TranslatedText(user.name,
                 style: const TextStyle(fontSize: 10, color: Colors.white)),
           ),
@@ -254,26 +219,20 @@ class _PeopleScreenState extends State<PeopleScreen> {
       _UserBottomSheet(user: user, friends: _friends, ctrl: _ctrl),
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       isScrollControlled: true,
     );
   }
 }
 
-// ── Карточка пользователя в списке ────────────────────────
 class _PeopleCard extends StatelessWidget {
   final UserModel user;
   final PeopleController ctrl;
   final FriendsController friends;
   final VoidCallback onTap;
 
-  const _PeopleCard({
-    required this.user,
-    required this.ctrl,
-    required this.friends,
-    required this.onTap,
-  });
+  const _PeopleCard({required this.user, required this.ctrl,
+      required this.friends, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -287,82 +246,52 @@ class _PeopleCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: AppColors.border, width: 0.5),
         ),
-        child: Row(
-          children: [
-            // Аватарка
-            Container(
-              width: 52, height: 52,
-              decoration: BoxDecoration(
-                color: user.mood?.color.withOpacity(0.2) ?? AppColors.surfaceVariant,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: user.mood?.color ?? AppColors.border, width: 2,
-                ),
-              ),
-              child: Center(
-                child: Text(user.avatarEmoji ?? '👤',
-                    style: const TextStyle(fontSize: 24)),
-              ),
+        child: Row(children: [
+          Container(
+            width: 52, height: 52,
+            decoration: BoxDecoration(
+              color: user.mood?.color.withOpacity(0.2) ?? AppColors.surfaceVariant,
+              shape: BoxShape.circle,
+              border: Border.all(color: user.mood?.color ?? AppColors.border, width: 2),
             ),
-            const SizedBox(width: 12),
-            // Инфо
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      TranslatedText(user.name,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        )),
-                      Text(', ${user.age ?? '?'}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        )),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  if (user.mood != null)
-                    Row(children: [
-                      Text(user.mood!.emoji, style: const TextStyle(fontSize: 13)),
-                      const SizedBox(width: 4),
-                      Text(user.mood!.label,
-                          style: TextStyle(
-                              color: user.mood!.color, fontSize: 12)),
-                    ]),
-                ],
-              ),
-            ),
-            // Дистанция + кнопка
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(ctrl.formatDistance(user.distanceMeters),
-                    style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 12)),
-                const SizedBox(height: 6),
-                GetBuilder<FriendsController>(
-                  builder: (fc) => _FriendButton(userId: user.id, friends: fc),
-                ),
-              ],
-            ),
-          ],
-        ),
+            child: Center(child: Text(user.avatarEmoji ?? '👤',
+                style: const TextStyle(fontSize: 24))),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                TranslatedText(user.name, style: const TextStyle(
+                    color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+                Text(', ${user.age ?? '?'}', style: const TextStyle(
+                    color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+              ]),
+              const SizedBox(height: 4),
+              if (user.mood != null) Row(children: [
+                Text(user.mood!.emoji, style: const TextStyle(fontSize: 13)),
+                const SizedBox(width: 4),
+                Text(user.mood!.label,
+                    style: TextStyle(color: user.mood!.color, fontSize: 12)),
+              ]),
+            ],
+          )),
+          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+            Text(ctrl.formatDistance(user.distanceMeters),
+                style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+            const SizedBox(height: 6),
+            GetBuilder<FriendsController>(
+                builder: (fc) => _FriendButton(userId: user.id, friends: fc)),
+          ]),
+        ]),
       ),
     );
   }
 }
 
-// ── Кнопка статуса дружбы ─────────────────────────────────
 class _FriendButton extends StatelessWidget {
   final String userId;
   final FriendsController friends;
-
   const _FriendButton({required this.userId, required this.friends});
 
   @override
@@ -376,8 +305,8 @@ class _FriendButton extends StatelessWidget {
             color: AppColors.success.withOpacity(0.15),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: const Text('Друг',
-              style: TextStyle(color: AppColors.success, fontSize: 11)),
+          child: Text('btn_friend_label'.tr,
+              style: const TextStyle(color: AppColors.success, fontSize: 11)),
         );
       case FriendStatus.outgoing:
         return Container(
@@ -386,8 +315,8 @@ class _FriendButton extends StatelessWidget {
             color: AppColors.textHint.withOpacity(0.15),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: const Text('Отправлен',
-              style: TextStyle(color: AppColors.textHint, fontSize: 11)),
+          child: Text('btn_request_sent'.tr,
+              style: const TextStyle(color: AppColors.textHint, fontSize: 11)),
         );
       case FriendStatus.incoming:
         return GestureDetector(
@@ -399,15 +328,13 @@ class _FriendButton extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.success, width: 1),
             ),
-            child: const Text('Принять',
-                style: TextStyle(color: AppColors.success, fontSize: 11)),
+            child: Text('btn_accept'.tr,
+                style: const TextStyle(color: AppColors.success, fontSize: 11)),
           ),
         );
       case FriendStatus.none:
         return GestureDetector(
-          onTap: () {
-            friends.sendRequest(userId);
-          },
+          onTap: () => friends.sendRequest(userId),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
@@ -415,37 +342,27 @@ class _FriendButton extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.primary, width: 1),
             ),
-            child: const Text('+ Друг',
-                style: TextStyle(color: AppColors.primary, fontSize: 11)),
+            child: Text('btn_friend'.tr,
+                style: const TextStyle(color: AppColors.primary, fontSize: 11)),
           ),
         );
     }
   }
 }
 
-// ── Боттом-шит профиля ────────────────────────────────────
 class _UserBottomSheet extends StatelessWidget {
   final UserModel user;
   final FriendsController friends;
   final PeopleController ctrl;
-
-  const _UserBottomSheet({
-    required this.user,
-    required this.friends,
-    required this.ctrl,
-  });
+  const _UserBottomSheet({required this.user, required this.friends, required this.ctrl});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Container(
-          width: 40, height: 4,
-          decoration: BoxDecoration(
-            color: AppColors.border, borderRadius: BorderRadius.circular(2),
-          ),
-        ),
+        Container(width: 40, height: 4,
+            decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2))),
         const SizedBox(height: 20),
         Row(children: [
           Container(
@@ -459,35 +376,27 @@ class _UserBottomSheet extends StatelessWidget {
                 style: const TextStyle(fontSize: 30))),
           ),
           const SizedBox(width: 16),
-          Expanded(child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              TranslatedText(user.name, style: const TextStyle(
+                  color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+              Text(', ${user.age ?? '?'}', style: const TextStyle(
+                  color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+            ]),
+            if (user.mood != null) ...[
+              const SizedBox(height: 4),
               Row(children: [
-                TranslatedText(user.name,
-                    style: const TextStyle(color: Colors.white, fontSize: 20,
-                        fontWeight: FontWeight.bold)),
-                Text(', ${user.age ?? '?'}',
-                    style: const TextStyle(color: Colors.white, fontSize: 20,
-                        fontWeight: FontWeight.bold)),
+                Container(width: 8, height: 8,
+                    decoration: BoxDecoration(color: user.mood!.color, shape: BoxShape.circle)),
+                const SizedBox(width: 6),
+                Text('${user.mood!.emoji} ${user.mood!.label}',
+                    style: TextStyle(color: user.mood!.color, fontSize: 13)),
               ]),
-              if (user.mood != null) ...[
-                const SizedBox(height: 4),
-                Row(children: [
-                  Container(
-                    width: 8, height: 8,
-                    decoration: BoxDecoration(
-                        color: user.mood!.color, shape: BoxShape.circle),
-                  ),
-                  const SizedBox(width: 6),
-                  Text('${user.mood!.emoji} ${user.mood!.label}',
-                      style: TextStyle(color: user.mood!.color, fontSize: 13)),
-                ]),
-              ],
-              if (user.distanceMeters != null)
-                Text(ctrl.formatDistance(user.distanceMeters),
-                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
             ],
-          )),
+            if (user.distanceMeters != null)
+              Text(ctrl.formatDistance(user.distanceMeters),
+                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+          ])),
         ]),
         if (user.bio != null && user.bio!.isNotEmpty) ...[
           const SizedBox(height: 12),
@@ -495,21 +404,15 @@ class _UserBottomSheet extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.surfaceVariant,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(user.bio!,
+              color: AppColors.surfaceVariant, borderRadius: BorderRadius.circular(10)),
+            child: TranslatedText(user.bio,
                 style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
           ),
         ],
         const SizedBox(height: 16),
-        Row(children: [
-          Expanded(
-            child: GetBuilder<FriendsController>(
-              builder: (fc) => _buildActionButton(context, fc),
-            ),
-          ),
-        ]),
+        SizedBox(width: double.infinity, child: GetBuilder<FriendsController>(
+          builder: (fc) => _buildActionButton(context, fc),
+        )),
       ]),
     );
   }
@@ -518,58 +421,46 @@ class _UserBottomSheet extends StatelessWidget {
     final status = fc.getStatus(user.id);
     if (status == FriendStatus.friend) {
       return ElevatedButton.icon(
-        onPressed: () {
-          Get.back();
-          // Переход в чат (через индекс 2 — Чаты → Личные)
-        },
+        onPressed: () => Get.back(),
         icon: const Icon(Icons.chat_bubble_outline, size: 16),
-        label: const Text('Написать'),
+        label: Text('btn_write'.tr),
       );
     }
     if (status == FriendStatus.outgoing) {
       return ElevatedButton(
         onPressed: null,
         style: ElevatedButton.styleFrom(backgroundColor: AppColors.surfaceVariant),
-        child: const Text('Запрос отправлен'),
+        child: Text('btn_request_sent'.tr),
       );
     }
     if (status == FriendStatus.incoming) {
       return ElevatedButton(
-        onPressed: () {
-          fc.acceptRequest(user.id);
-          Get.back();
-        },
-        child: const Text('Принять запрос'),
+        onPressed: () { fc.acceptRequest(user.id); Get.back(); },
+        child: Text('btn_accept_request'.tr),
       );
     }
     return ElevatedButton.icon(
-      onPressed: () {
-        fc.sendRequest(user.id);
-        Get.back();
-      },
+      onPressed: () { fc.sendRequest(user.id); Get.back(); },
       icon: const Icon(Icons.person_add_outlined, size: 16),
-      label: const Text('+ Добавить в друзья'),
+      label: Text('btn_add_friend'.tr),
     );
   }
 }
 
-// ── Пульсирующая точка (я) ────────────────────────────────
 class _PulsingDot extends StatefulWidget {
   const _PulsingDot();
   @override
   State<_PulsingDot> createState() => _PulsingDotState();
 }
 
-class _PulsingDotState extends State<_PulsingDot>
-    with SingleTickerProviderStateMixin {
+class _PulsingDotState extends State<_PulsingDot> with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
   late Animation<double> _scale;
 
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(seconds: 2))
-      ..repeat();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat();
     _scale = Tween<double>(begin: 1, end: 2.5)
         .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
   }
@@ -579,40 +470,24 @@ class _PulsingDotState extends State<_PulsingDot>
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 40, height: 40,
-      child: Stack(alignment: Alignment.center, children: [
-        AnimatedBuilder(
-          animation: _scale,
-          builder: (_, __) => Transform.scale(
-            scale: _scale.value,
-            child: Container(
-              width: 16, height: 16,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.15),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-        ),
-        Container(
-          width: 14, height: 14,
-          decoration: BoxDecoration(
-            color: AppColors.primary, shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2),
-          ),
-        ),
-      ]),
-    );
+    return SizedBox(width: 40, height: 40, child: Stack(alignment: Alignment.center, children: [
+      AnimatedBuilder(animation: _scale, builder: (_, __) => Transform.scale(
+        scale: _scale.value,
+        child: Container(width: 16, height: 16,
+            decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.15), shape: BoxShape.circle)),
+      )),
+      Container(width: 14, height: 14, decoration: BoxDecoration(
+        color: AppColors.primary, shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 2),
+      )),
+    ]));
   }
 }
 
 class _GridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = AppColors.border.withOpacity(0.3)
-      ..strokeWidth = 0.5;
+    final paint = Paint()..color = AppColors.border.withOpacity(0.3)..strokeWidth = 0.5;
     const step = 30.0;
     for (double x = 0; x < size.width; x += step) {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
@@ -621,7 +496,5 @@ class _GridPainter extends CustomPainter {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
     }
   }
-
-  @override
-  bool shouldRepaint(_) => false;
+  @override bool shouldRepaint(_) => false;
 }

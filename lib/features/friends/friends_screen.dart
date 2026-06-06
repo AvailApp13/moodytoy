@@ -25,12 +25,12 @@ class FriendsScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(12),
                   children: [
                     if (c.incomingRequests.isNotEmpty) ...[
-                      _sectionLabel('ВХОДЯЩИЕ ЗАПРОСЫ'),
+                      _sectionLabel('incoming_requests'.tr),
                       ...c.incomingRequests.map(
                         (u) => _RequestCard(user: u, ctrl: c)),
                       const SizedBox(height: 12),
                     ],
-                    _sectionLabel('МОИ ДРУЗЬЯ'),
+                    _sectionLabel('my_friends'.tr),
                     if (c.friends.isEmpty)
                       _buildEmpty(context)
                     else
@@ -53,11 +53,11 @@ class FriendsScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Друзья',
+              Text('friends_title'.tr,
                   style: Theme.of(context).textTheme.headlineMedium),
               GetBuilder<FriendsController>(
                 builder: (c) => Text(
-                  '${c.friends.length} друзей · ${c.incomingRequests.length} запросов',
+                  '${c.friends.length} ${'friends_count'.tr} · ${c.incomingRequests.length} ${'requests_count'.tr}',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ),
@@ -103,7 +103,7 @@ class FriendsScreen extends StatelessWidget {
       child: Column(children: [
         const Text('👋', style: TextStyle(fontSize: 48)),
         const SizedBox(height: 12),
-        Text('Добавьте друзей через экран Люди',
+        Text('friends_empty'.tr,
             style: Theme.of(context).textTheme.bodyMedium),
       ]),
     ),
@@ -144,7 +144,7 @@ class _RequestCard extends StatelessWidget {
                 style: const TextStyle(color: Colors.white,
                     fontSize: 15, fontWeight: FontWeight.w600)),
             const SizedBox(height: 2),
-            const Text('Хочет добавиться в друзья',
+            Text('wants_friend'.tr,
                 style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
           ],
         )),
@@ -279,7 +279,7 @@ class _FriendCard extends StatelessWidget {
                 ));
               },
               icon: const Icon(Icons.chat_bubble_outline, size: 16),
-              label: const Text('Написать'),
+              label: const Text('btn_write'.tr),
             ),
           ),
         ]),

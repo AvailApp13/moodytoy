@@ -115,9 +115,9 @@ class ProfileScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _infoRow(Icons.cake_outlined, 'Возраст', '${user.age ?? '?'} лет'),
+          _infoRow(Icons.cake_outlined, 'profile_age'.tr, '${user.age ?? '?'} лет'),
           const SizedBox(height: 8),
-          _infoRow(Icons.location_on_outlined, 'Город', user.city ?? 'Не указан'),
+          _infoRow(Icons.location_on_outlined, 'profile_city'.tr, user.city ?? 'profile_not_set'.tr),
           const SizedBox(height: 12),
           GestureDetector(
             onTap: () => _editBio(ctx, auth, user),
@@ -171,8 +171,7 @@ class ProfileScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Текущее настроение',
-              style: TextStyle(color: AppColors.textSecondary,
+          Text('profile_mood'.tr, style: const TextStyle(color: AppColors.textSecondary,
                   fontSize: 12, fontWeight: FontWeight.w600)),
           const SizedBox(height: 10),
           Wrap(
@@ -228,7 +227,7 @@ class ProfileScreen extends StatelessWidget {
         const Icon(Icons.location_on_outlined,
             size: 20, color: AppColors.textSecondary),
         const SizedBox(width: 12),
-        const Expanded(child: Text('Показывать меня на карте',
+        Expanded(child: Text('profile_map_toggle'.tr,
             style: TextStyle(color: Colors.white, fontSize: 14))),
         Switch(
           value: user.locationEnabled,
@@ -253,7 +252,7 @@ class ProfileScreen extends StatelessWidget {
           const Icon(Icons.settings_outlined,
               size: 20, color: AppColors.textSecondary),
           const SizedBox(width: 12),
-          const Expanded(child: Text('Настройки профиля',
+          Expanded(child: Text('profile_settings'.tr,
               style: TextStyle(color: Colors.white, fontSize: 14))),
           const Icon(Icons.chevron_right,
               size: 20, color: AppColors.textHint),
@@ -264,7 +263,7 @@ class ProfileScreen extends StatelessWidget {
 
   Widget _buildKeyfobButton(BuildContext ctx) {
     return GestureDetector(
-      onTap: () => Get.snackbar('🎮 Брелок', 'Функция в разработке',
+      onTap: () => Get.snackbar('🎮', 'wip_feature'.tr,
           duration: const Duration(seconds: 2),
           backgroundColor: AppColors.surface,
           colorText: Colors.white),
@@ -288,10 +287,10 @@ class ProfileScreen extends StatelessWidget {
             Text('🧸', style: TextStyle(fontSize: 24)),
             SizedBox(width: 12),
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Подключить игрушку',
-                  style: TextStyle(color: Colors.white,
+              Text('profile_toy'.tr,
+                  style: const TextStyle(color: Colors.white,
                       fontSize: 16, fontWeight: FontWeight.bold)),
-              Text('nRF52832 · BLE 5.0 · OTA',
+              Text('profile_toy_sub'.tr,
                   style: TextStyle(color: Colors.white70, fontSize: 11)),
             ]),
             Spacer(),
@@ -306,7 +305,7 @@ class ProfileScreen extends StatelessWidget {
     final controller = TextEditingController(text: user.bio ?? '');
     Get.dialog(AlertDialog(
       backgroundColor: AppColors.surface,
-      title: const Text('О себе', style: TextStyle(color: Colors.white)),
+      title: Text('dialog_bio_title'.tr, style: const TextStyle(color: Colors.white)),
       content: Column(mainAxisSize: MainAxisSize.min, children: [
         TextField(
           controller: controller,
@@ -314,7 +313,7 @@ class ProfileScreen extends StatelessWidget {
           maxLength: 200,
           maxLines: 4,
           decoration: const InputDecoration(
-            hintText: 'Расскажи о себе...',
+            hintText: 'dialog_bio_hint'.tr,
             hintStyle: TextStyle(color: AppColors.textHint),
             counterStyle: TextStyle(color: AppColors.textHint),
             enabledBorder: UnderlineInputBorder(
@@ -327,14 +326,14 @@ class ProfileScreen extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Get.back(),
-          child: const Text('Отмена', style: TextStyle(color: AppColors.textHint)),
+          child: Text('dialog_cancel'.tr, style: const TextStyle(color: AppColors.textHint)),
         ),
         ElevatedButton(
           onPressed: () {
             auth.updateBio(controller.text.trim());
             Get.back();
           },
-          child: const Text('Сохранить'),
+          child: Text('dialog_save'.tr),
         ),
       ],
     ));
@@ -344,7 +343,7 @@ class ProfileScreen extends StatelessWidget {
     final emojis = ['😊', '🧑', '👱‍♀️', '🧔', '👩', '🏃', '👩‍🦰', '🌸', '😎', '🤩', '🦊', '🐼'];
     Get.dialog(AlertDialog(
       backgroundColor: AppColors.surface,
-      title: const Text('Выбери аватар', style: TextStyle(color: Colors.white)),
+      title: Text('dialog_avatar_title'.tr, style: const TextStyle(color: Colors.white)),
       content: Wrap(
         spacing: 12, runSpacing: 12,
         children: emojis.map((e) => GestureDetector(
@@ -402,13 +401,13 @@ class _SettingsScreenState extends State<_SettingsScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.surface,
         leading: const BackButton(color: Colors.white),
-        title: const Text('Настройки', style: TextStyle(color: Colors.white)),
+        title: Text('settings_title'.tr, style: const TextStyle(color: Colors.white)),
         elevation: 0,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _sectionTitle('Профиль'),
+          _sectionTitle('settings_profile'.tr),
           _settingItem(
             title: 'settings_name'.tr,
             subtitle: _auth.currentUser.value?.name ?? '',
@@ -426,12 +425,12 @@ class _SettingsScreenState extends State<_SettingsScreen> {
             onTap: () => _editBirthDate(context),
           ),
           const SizedBox(height: 16),
-          _sectionTitle('Аккаунт'),
+          _sectionTitle('settings_account'.tr),
           _settingItem(
             title: 'settings_login'.tr,
             subtitle: 'settings_wip'.tr,
             icon: Icons.alternate_email,
-            onTap: () => Get.snackbar('', 'Функция в разработке',
+            onTap: () => Get.snackbar('', 'wip_feature'.tr,
                 backgroundColor: AppColors.surface, colorText: Colors.white),
           ),
           _settingItem(
@@ -493,12 +492,12 @@ class _SettingsScreenState extends State<_SettingsScreen> {
   void _editName(BuildContext context) {
     Get.dialog(AlertDialog(
       backgroundColor: AppColors.surface,
-      title: const Text('Имя', style: TextStyle(color: Colors.white)),
+      title: Text('dialog_name_title'.tr, style: const TextStyle(color: Colors.white)),
       content: TextField(
         controller: _nameCtrl,
         style: const TextStyle(color: Colors.white),
         decoration: const InputDecoration(
-          hintText: 'Введите имя',
+          hintText: 'dialog_name_hint'.tr,
           hintStyle: TextStyle(color: AppColors.textHint),
           enabledBorder: UnderlineInputBorder(
               borderSide: BorderSide(color: AppColors.border)),
@@ -508,14 +507,14 @@ class _SettingsScreenState extends State<_SettingsScreen> {
       ),
       actions: [
         TextButton(onPressed: () => Get.back(),
-            child: const Text('Отмена', style: TextStyle(color: AppColors.textHint))),
+            child: Text('dialog_cancel'.tr, style: const TextStyle(color: AppColors.textHint))),
         ElevatedButton(
           onPressed: () {
             _auth.updateName(_nameCtrl.text.trim());
             Get.back();
             setState(() {});
           },
-          child: const Text('Сохранить'),
+          child: Text('dialog_save'.tr),
         ),
       ],
     ));

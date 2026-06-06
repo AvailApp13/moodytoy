@@ -58,7 +58,7 @@ class _CollectionScreenState extends State<CollectionScreen>
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          child: Text('Коллекция',
+          child: Text('collection_title'.tr,
               style: Theme.of(context).textTheme.headlineMedium),
         ),
         Container(
@@ -70,7 +70,7 @@ class _CollectionScreenState extends State<CollectionScreen>
           ),
           child: TabBar(
             controller: _tab,
-            tabs: const [Tab(text: 'Моя коллекция'), Tab(text: 'Магазины')],
+            tabs: const [Tab(text: 'collection_mine'.tr), Tab(text: 'collection_shops'.tr)],
             labelColor: Colors.white,
             unselectedLabelColor: AppColors.textSecondary,
             indicator: BoxDecoration(
@@ -132,7 +132,7 @@ class _CollectionScreenState extends State<CollectionScreen>
                 color: AppColors.surface.withOpacity(0.9),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: const Text('🗺 Магазины-партнёры рядом',
+              child: Text('shop_map_label'.tr,
                   style: TextStyle(color: Colors.white, fontSize: 13)),
             ),
           ),
@@ -174,7 +174,7 @@ class _CollectionScreenState extends State<CollectionScreen>
             child: ElevatedButton.icon(
               onPressed: () => Get.back(),
               icon: const Icon(Icons.map_outlined, size: 16),
-              label: const Text('Построить маршрут'),
+              label: Text('shop_route'.tr),
             ),
           ),
         ]),
@@ -215,7 +215,7 @@ class _ToyCard extends StatelessWidget {
               color: AppColors.success.withOpacity(0.15),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Text('Привязан',
+            child: Text('collection_bound'.tr,
                 style: TextStyle(color: AppColors.success, fontSize: 11)),
           ),
         ],
@@ -228,7 +228,7 @@ class _EmptySlot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => Get.snackbar('🎮', 'Функция в разработке',
+      onTap: () => Get.snackbar('🎮', 'wip_feature'.tr,
           duration: const Duration(seconds: 2),
           backgroundColor: AppColors.surface, colorText: Colors.white),
       child: Container(
@@ -246,10 +246,10 @@ class _EmptySlot extends StatelessWidget {
             Icon(Icons.add_circle_outline,
                 size: 40, color: AppColors.textHint),
             const SizedBox(height: 8),
-            const Text('Слот пуст',
+            Text('collection_empty'.tr,
                 style: TextStyle(color: AppColors.textHint, fontSize: 13)),
             const SizedBox(height: 2),
-            const Text('Добавить игрушку',
+            Text('collection_add'.tr,
                 style: TextStyle(color: AppColors.primary, fontSize: 11)),
           ],
         ),

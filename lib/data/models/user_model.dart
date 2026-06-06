@@ -1,3 +1,4 @@
+import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 
 enum Mood { coffee, gamer, dating, walk, sport }
@@ -5,11 +6,11 @@ enum Mood { coffee, gamer, dating, walk, sport }
 extension MoodExtension on Mood {
   String get label {
     switch (this) {
-      case Mood.coffee: return 'Кофе-брейк';
-      case Mood.gamer:  return 'Игрок';
-      case Mood.dating: return 'Знакомство';
-      case Mood.walk:   return 'Прогулка';
-      case Mood.sport:  return 'Спорт/активность';
+      case Mood.coffee: return 'mood_coffee'.tr;
+      case Mood.gamer:  return 'mood_gamer'.tr;
+      case Mood.dating: return 'mood_dating'.tr;
+      case Mood.walk:   return 'mood_walk'.tr;
+      case Mood.sport:  return 'mood_sport'.tr;
     }
   }
 
