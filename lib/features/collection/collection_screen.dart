@@ -70,7 +70,7 @@ class _CollectionScreenState extends State<CollectionScreen>
           ),
           child: TabBar(
             controller: _tab,
-            tabs: const [Tab(text: 'collection_mine'.tr), Tab(text: 'collection_shops'.tr)],
+            tabs: [Tab(text: 'collection_mine'.tr), Tab(text: 'collection_shops'.tr)],
             labelColor: Colors.white,
             unselectedLabelColor: AppColors.textSecondary,
             indicator: BoxDecoration(

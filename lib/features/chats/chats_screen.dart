@@ -55,7 +55,7 @@ class _ChatsScreenState extends State<ChatsScreen>
       ),
       TabBar(
         controller: _tab,
-        tabs: const [Tab(text: 'chats_general'.tr), Tab(text: 'chats_personal'.tr)],
+        tabs: [Tab(text: 'chats_general'.tr), Tab(text: 'chats_personal'.tr)],
         labelColor: AppColors.primary,
         unselectedLabelColor: AppColors.textSecondary,
         indicatorColor: AppColors.primary,

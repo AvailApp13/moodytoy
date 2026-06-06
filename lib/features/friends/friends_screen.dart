@@ -279,7 +279,7 @@ class _FriendCard extends StatelessWidget {
                 ));
               },
               icon: const Icon(Icons.chat_bubble_outline, size: 16),
-              label: const Text('btn_write'.tr),
+              label: Text('btn_write'.tr),
             ),
           ),
         ]),
