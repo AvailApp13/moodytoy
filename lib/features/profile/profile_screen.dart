@@ -20,7 +20,7 @@ class ProfileScreen extends StatelessWidget {
       body: SafeArea(
         child: Obx(() {
           final user = auth.currentUser.value;
-          if (user == null) return const Center(child: CircularProgressIndicator());
+          if (user == null) return Center(child: CircularProgressIndicator());
           return _buildContent(context, user, auth);
         }),
       ),

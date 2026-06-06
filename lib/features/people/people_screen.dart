@@ -1,5 +1,3 @@
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/constants/app_colors.dart';
@@ -160,7 +158,7 @@ class _PeopleScreenState extends State<PeopleScreen> {
     return Stack(children: [
       Container(color: const Color(0xFF1A1A2E)),
       CustomPaint(size: Size.infinite, painter: _GridPainter()),
-      const Center(child: _PulsingDot()),
+      Center(child: _PulsingDot()),
       Obx(() => Stack(
         children: _ctrl.filteredUsers.take(8).toList().asMap().entries
             .map((e) => _buildMapMarker(e.value, e.key)).toList(),
