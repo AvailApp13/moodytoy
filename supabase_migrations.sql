@@ -1,153 +1,127 @@
--- ============================================================
--- MoodyToy — SQL Migrations для Supabase
--- Выполнить в Supabase Dashboard → SQL Editor
--- ============================================================
+-- ═══════════════════════════════════════════════════════════
+-- MoodyToy — SQL миграции для Supabase
+-- Выполнить в Dashboard → SQL Editor
+-- ═══════════════════════════════════════════════════════════
 
--- ── 1. Расширения ────────────────────────────────────────────
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS "postgis"; -- для геозапросов (опционально)
-
--- ── 2. Таблица пользователей ─────────────────────────────────
-CREATE TABLE IF NOT EXISTS public.users (
-  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  email         TEXT UNIQUE NOT NULL,
-  phone         TEXT UNIQUE,
-  name          TEXT NOT NULL DEFAULT '',
-  age           INTEGER CHECK (age >= 18),
-  gender        TEXT CHECK (gender IN ('male', 'female', 'other')),
-  looking_for   TEXT CHECK (looking_for IN ('male', 'female', 'all')),
-  bio           TEXT CHECK (char_length(bio) <= 300),
-  city          TEXT,
-  height        INTEGER CHECK (height BETWEEN 140 AND 220),
-  tags          TEXT[] DEFAULT '{}',
-  photos        TEXT[] DEFAULT '{}',
-  face_verified BOOLEAN DEFAULT FALSE,
-  keyfob_mac    TEXT,
-  mood          TEXT CHECK (mood IN ('ready', 'waiting', 'sad', 'extra')),
-  location_enabled BOOLEAN DEFAULT FALSE,
-  lat           DOUBLE PRECISION,
-  lng           DOUBLE PRECISION,
-  location_updated_at TIMESTAMP WITH TIME ZONE,
-  push_token    TEXT,
-  profile_private BOOLEAN DEFAULT FALSE,
-  battery_level INTEGER CHECK (battery_level BETWEEN 0 AND 100),
-  created_at    TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  last_seen_at  TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+-- Таблица пользователей
+CREATE TABLE IF NOT EXISTS users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL DEFAULT 'Гость',
+  email TEXT UNIQUE,
+  phone TEXT,
+  age INTEGER,
+  birth_date DATE,
+  gender TEXT CHECK (gender IN ('male','female','other')),
+  looking_for TEXT CHECK (looking_for IN ('male','female','all')),
+  bio TEXT,
+  city TEXT,
+  height INTEGER,
+  tags TEXT[] DEFAULT '{}',
+  photos TEXT[] DEFAULT '{}',
+  avatar_url TEXT,
+  avatar_emoji TEXT DEFAULT '😊',
+  face_verified BOOLEAN DEFAULT false,
+  keyfob_mac TEXT,
+  mood TEXT CHECK (mood IN ('coffee','gamer','dating','walk','sport')),
+  location_enabled BOOLEAN DEFAULT true,
+  lat DOUBLE PRECISION,
+  lng DOUBLE PRECISION,
+  location_updated_at TIMESTAMPTZ,
+  push_token TEXT,
+  profile_private BOOLEAN DEFAULT false,
+  battery_level INTEGER DEFAULT 100,
+  device_id TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  last_seen_at TIMESTAMPTZ DEFAULT now()
 );
 
--- ── 3. Таблица дружбы ─────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS public.friendships (
-  id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  requester_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  receiver_id  UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  status       TEXT NOT NULL DEFAULT 'pending'
-               CHECK (status IN ('pending', 'accepted', 'declined')),
-  created_at   TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at   TIMESTAMP WITH TIME ZONE,
+-- Таблица дружбы
+CREATE TABLE IF NOT EXISTS friendships (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  requester_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  receiver_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','accepted','declined')),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(requester_id, receiver_id)
 );
 
--- ── 4. Таблица брелоков ───────────────────────────────────────
-CREATE TABLE IF NOT EXISTS public.keyfobs (
-  id               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  mac_address      TEXT UNIQUE NOT NULL,
-  user_id          UUID REFERENCES public.users(id) ON DELETE SET NULL,
-  firmware_version TEXT DEFAULT '1.0.0',
-  battery_level    INTEGER CHECK (battery_level BETWEEN 0 AND 100),
-  registered_at    TIMESTAMP WITH TIME ZONE,
-  last_ping_at     TIMESTAMP WITH TIME ZONE
+-- Таблица сообщений
+CREATE TABLE IF NOT EXISTS messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  chat_id TEXT NOT NULL,
+  sender_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  text TEXT,
+  image_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- ── 5. Таблица коллекций (магазин) ───────────────────────────
-CREATE TABLE IF NOT EXISTS public.collections (
-  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name          TEXT NOT NULL,
-  series        TEXT NOT NULL DEFAULT 'Серия 1',
-  image_url     TEXT,
-  price_cny     NUMERIC(10,2) NOT NULL,
-  sale_price_cny NUMERIC(10,2),
-  is_new        BOOLEAN DEFAULT FALSE,
-  in_stock      BOOLEAN DEFAULT TRUE,
-  description   TEXT,
-  created_at    TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+-- Коллекции (магазин)
+CREATE TABLE IF NOT EXISTS collections (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  series TEXT,
+  image_url TEXT,
+  emoji TEXT,
+  price_cny NUMERIC,
+  sale_price_cny NUMERIC,
+  is_new BOOLEAN DEFAULT false,
+  in_stock BOOLEAN DEFAULT true,
+  description TEXT
 );
 
--- ── 6. Таблица купленных игрушек ──────────────────────────────
-CREATE TABLE IF NOT EXISTS public.user_collections (
-  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id       UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  collection_id UUID NOT NULL REFERENCES public.collections(id),
-  keyfob_mac    TEXT,
-  serial_number TEXT NOT NULL DEFAULT '#0000',
-  purchased_at  TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+-- Игрушки пользователей
+CREATE TABLE IF NOT EXISTS user_toys (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  collection_id UUID REFERENCES collections(id),
+  name TEXT NOT NULL,
+  emoji TEXT,
+  series TEXT,
+  serial_number TEXT,
+  keyfob_mac TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- ── 7. Индексы ───────────────────────────────────────────────
-CREATE INDEX IF NOT EXISTS idx_users_location
-  ON public.users(lat, lng)
-  WHERE location_enabled = TRUE;
+-- Индексы
+CREATE INDEX IF NOT EXISTS idx_users_location ON users(lat, lng) WHERE location_enabled = true;
+CREATE INDEX IF NOT EXISTS idx_users_mood ON users(mood);
+CREATE INDEX IF NOT EXISTS idx_users_device ON users(device_id);
+CREATE INDEX IF NOT EXISTS idx_friendships_requester ON friendships(requester_id);
+CREATE INDEX IF NOT EXISTS idx_friendships_receiver ON friendships(receiver_id);
+CREATE INDEX IF NOT EXISTS idx_messages_chat ON messages(chat_id, created_at);
 
-CREATE INDEX IF NOT EXISTS idx_users_keyfob_mac
-  ON public.users(keyfob_mac)
-  WHERE keyfob_mac IS NOT NULL;
+-- RLS (Row Level Security)
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE friendships ENABLE ROW LEVEL SECURITY;
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_toys ENABLE ROW LEVEL SECURITY;
 
-CREATE INDEX IF NOT EXISTS idx_friendships_requester
-  ON public.friendships(requester_id);
+-- Политики: все могут читать пользователей (для MVP)
+CREATE POLICY IF NOT EXISTS "Users read all" ON users FOR SELECT USING (true);
+CREATE POLICY IF NOT EXISTS "Users insert own" ON users FOR INSERT WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "Users update own" ON users FOR UPDATE USING (true);
 
-CREATE INDEX IF NOT EXISTS idx_friendships_receiver
-  ON public.friendships(receiver_id);
+CREATE POLICY IF NOT EXISTS "Friendships read" ON friendships FOR SELECT USING (true);
+CREATE POLICY IF NOT EXISTS "Friendships insert" ON friendships FOR INSERT WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "Friendships update" ON friendships FOR UPDATE USING (true);
+CREATE POLICY IF NOT EXISTS "Friendships delete" ON friendships FOR DELETE USING (true);
 
-CREATE INDEX IF NOT EXISTS idx_users_location_updated
-  ON public.users(location_enabled, location_updated_at);
+CREATE POLICY IF NOT EXISTS "Messages read" ON messages FOR SELECT USING (true);
+CREATE POLICY IF NOT EXISTS "Messages insert" ON messages FOR INSERT WITH CHECK (true);
 
--- ── 8. Row Level Security (RLS) ──────────────────────────────
-ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.friendships ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.keyfobs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.collections ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.user_collections ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "Toys read" ON user_toys FOR SELECT USING (true);
+CREATE POLICY IF NOT EXISTS "Toys insert" ON user_toys FOR INSERT WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "Toys delete" ON user_toys FOR DELETE USING (true);
 
--- Пользователи могут читать видимых пользователей
-CREATE POLICY "users_select_public" ON public.users
-  FOR SELECT USING (TRUE);
+-- Realtime
+ALTER PUBLICATION supabase_realtime ADD TABLE users;
+ALTER PUBLICATION supabase_realtime ADD TABLE friendships;
+ALTER PUBLICATION supabase_realtime ADD TABLE messages;
 
--- Пользователь может обновлять только свой профиль
-CREATE POLICY "users_update_own" ON public.users
-  FOR UPDATE USING (auth.uid() = id);
+-- Storage bucket для аватарок
+INSERT INTO storage.buckets (id, name, public) VALUES ('avatars', 'avatars', true)
+ON CONFLICT DO NOTHING;
 
--- Пользователь может создать свой профиль
-CREATE POLICY "users_insert_own" ON public.users
-  FOR INSERT WITH CHECK (auth.uid() = id);
-
--- Friendships — пользователь видит свои
-CREATE POLICY "friendships_select" ON public.friendships
-  FOR SELECT USING (
-    auth.uid() = requester_id OR auth.uid() = receiver_id
-  );
-
-CREATE POLICY "friendships_insert" ON public.friendships
-  FOR INSERT WITH CHECK (auth.uid() = requester_id);
-
-CREATE POLICY "friendships_update" ON public.friendships
-  FOR UPDATE USING (
-    auth.uid() = requester_id OR auth.uid() = receiver_id
-  );
-
--- Collections — все могут читать
-CREATE POLICY "collections_select_all" ON public.collections
-  FOR SELECT USING (TRUE);
-
--- User collections — только своё
-CREATE POLICY "user_collections_select" ON public.user_collections
-  FOR SELECT USING (auth.uid() = user_id);
-
--- ── 9. Realtime — включить для нужных таблиц ─────────────────
--- Выполнить в Supabase Dashboard → Database → Replication:
--- Включить Realtime для таблицы users (поля: location_enabled, lat, lng, mood)
--- Включить Realtime для таблицы friendships
-
--- ── 10. Тестовые данные (опционально) ────────────────────────
--- INSERT INTO public.collections (name, series, price_cny, is_new) VALUES
--- ('Котик Мяу', 'Серия 1', 299, TRUE),
--- ('Пандочка', 'Серия 1', 349, TRUE),
--- ('Лисёнок', 'Серия 2', 399, FALSE);
+CREATE POLICY IF NOT EXISTS "Avatar upload" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'avatars');
+CREATE POLICY IF NOT EXISTS "Avatar read" ON storage.objects FOR SELECT USING (bucket_id = 'avatars');

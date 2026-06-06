@@ -39,9 +39,7 @@ class ProfileScreen extends StatelessWidget {
         const SizedBox(height: 12),
         _buildLocationToggle(user, auth),
         const SizedBox(height: 12),
-        _buildSettingsButton(ctx, auth),
-        const SizedBox(height: 16),
-        _buildKeyfobButton(ctx),
+        _buildKeyfobButton(ctx, auth),
         const SizedBox(height: 24),
       ],
     );
@@ -117,7 +115,10 @@ class ProfileScreen extends StatelessWidget {
         children: [
           _infoRow(Icons.cake_outlined, 'profile_age'.tr, '${user.age ?? '?'} лет'),
           const SizedBox(height: 8),
-          _infoRow(Icons.location_on_outlined, 'profile_city'.tr, user.city ?? 'profile_not_set'.tr),
+          GestureDetector(
+            onTap: () => _editCity(ctx, auth, user),
+            child: _infoRow(Icons.location_on_outlined, 'profile_city'.tr, user.city?.isNotEmpty == true ? user.city! : 'profile_not_set'.tr),
+          ),
           const SizedBox(height: 12),
           GestureDetector(
             onTap: () => _editBio(ctx, auth, user),
@@ -261,12 +262,15 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildKeyfobButton(BuildContext ctx) {
+  Widget _buildKeyfobButton(BuildContext ctx, AuthController auth) {
     return GestureDetector(
-      onTap: () => Get.snackbar('🎮', 'wip_feature'.tr,
-          duration: const Duration(seconds: 2),
-          backgroundColor: AppColors.surface,
-          colorText: Colors.white),
+      onTap: () {
+        auth.addTestToy();
+        Get.snackbar('🧸', 'wip_feature'.tr,
+            duration: const Duration(seconds: 2),
+            backgroundColor: AppColors.surface,
+            colorText: Colors.white);
+      },
       child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
@@ -331,6 +335,40 @@ class ProfileScreen extends StatelessWidget {
         ElevatedButton(
           onPressed: () {
             auth.updateBio(controller.text.trim());
+            Get.back();
+          },
+          child: Text('dialog_save'.tr),
+        ),
+      ],
+    ));
+  }
+
+
+  void _editCity(BuildContext ctx, AuthController auth, UserModel user) {
+    final controller = TextEditingController(text: user.city ?? '');
+    Get.dialog(AlertDialog(
+      backgroundColor: AppColors.surface,
+      title: Text('profile_city'.tr, style: const TextStyle(color: Colors.white)),
+      content: TextField(
+        controller: controller,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          hintText: 'profile_city'.tr,
+          hintStyle: const TextStyle(color: AppColors.textHint),
+          enabledBorder: const UnderlineInputBorder(
+              borderSide: BorderSide(color: AppColors.border)),
+          focusedBorder: const UnderlineInputBorder(
+              borderSide: BorderSide(color: AppColors.primary)),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Get.back(),
+          child: Text('dialog_cancel'.tr, style: const TextStyle(color: AppColors.textHint)),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            auth.updateCity(controller.text.trim());
             Get.back();
           },
           child: Text('dialog_save'.tr),

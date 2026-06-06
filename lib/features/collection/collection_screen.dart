@@ -14,6 +14,7 @@ class CollectionScreen extends StatefulWidget {
 class _CollectionScreenState extends State<CollectionScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tab;
+  bool _isShopListMode = false;
 
   // Мок-магазины партнёры
   final _shops = [
@@ -110,6 +111,89 @@ class _CollectionScreenState extends State<CollectionScreen>
   }
 
   Widget _buildShops() {
+    return Column(children: [
+      // Кнопка переключения карта/список
+      Padding(
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+        child: Row(children: [
+          const Spacer(),
+          GestureDetector(
+            onTap: () => setState(() => _isShopListMode = !_isShopListMode),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceVariant,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.border, width: 0.5),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(_isShopListMode ? Icons.map_outlined : Icons.list,
+                    size: 14, color: AppColors.textSecondary),
+                const SizedBox(width: 4),
+                Text(_isShopListMode ? 'map_btn'.tr : 'list_btn'.tr,
+                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+              ]),
+            ),
+          ),
+        ]),
+      ),
+      Expanded(child: _isShopListMode ? _buildShopList() : _buildShopMap()),
+    ]);
+  }
+
+  Widget _buildShopList() {
+    return ListView.separated(
+      padding: const EdgeInsets.all(12),
+      itemCount: _shops.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      itemBuilder: (_, i) {
+        final shop = _shops[i];
+        return GestureDetector(
+          onTap: () => _showShopInfo(shop),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.card,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.border, width: 0.5),
+            ),
+            child: Row(children: [
+              Container(
+                width: 48, height: 48,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(child: Text(shop['emoji'] as String,
+                    style: const TextStyle(fontSize: 22))),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TranslatedText(shop['name'] as String,
+                      style: const TextStyle(color: Colors.white,
+                          fontSize: 15, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 2),
+                  Row(children: [
+                    const Icon(Icons.location_on_outlined,
+                        size: 12, color: AppColors.textSecondary),
+                    const SizedBox(width: 4),
+                    TranslatedText(shop['address'] as String,
+                        style: const TextStyle(
+                            color: AppColors.textSecondary, fontSize: 12)),
+                  ]),
+                ],
+              )),
+              const Icon(Icons.chevron_right, color: AppColors.textHint, size: 20),
+            ]),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildShopMap() {
     return Stack(
       children: [
         // Карта (заглушка с сеткой)

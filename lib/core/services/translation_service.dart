@@ -15,22 +15,14 @@ class TranslationService {
     return _prefs!;
   }
 
-  // ─────────────────────────────────────────────────────────
-  // PUBLIC API
-  // ─────────────────────────────────────────────────────────
-
   static Future<String?> translate(String? text) async {
     if (text == null || text.trim().isEmpty) return null;
-
     final lang = _currentLang;
-    if (lang == 'ru') return text; // русский — язык оригинала
+    if (lang == 'ru') return text;
 
     final cacheKey = '${text.hashCode}_$lang';
-
-    // 1. In-memory кэш
     if (_memCache.containsKey(cacheKey)) return _memCache[cacheKey];
 
-    // 2. SharedPreferences кэш
     final prefs = await _storage;
     final cached = prefs.getString('$_cachePrefix$cacheKey');
     if (cached != null) {
@@ -38,15 +30,13 @@ class TranslationService {
       return cached;
     }
 
-    // 3. DeepSeek API
     final translated = await _translateViaApi(text, lang);
     if (translated != null && translated.isNotEmpty) {
       _memCache[cacheKey] = translated;
       await prefs.setString('$_cachePrefix$cacheKey', translated);
       return translated;
     }
-
-    return text; // fallback — оригинал
+    return text; // Всегда возвращаем оригинал при ошибке, без суффиксов
   }
 
   static String translateSync(String? text) {
@@ -57,24 +47,13 @@ class TranslationService {
     return _memCache[cacheKey] ?? text;
   }
 
-  static Future<void> prefetch(List<String?> texts) async {
-    await Future.wait(
-      texts.where((t) => t != null && t.isNotEmpty).map(translate),
-    );
-  }
-
   static Future<void> clearCache() async {
     _memCache.clear();
     final prefs = await _storage;
-    final keys = prefs.getKeys()
-        .where((k) => k.startsWith(_cachePrefix))
-        .toList();
-    for (final k in keys) await prefs.remove(k);
+    for (final k in prefs.getKeys().where((k) => k.startsWith(_cachePrefix)).toList()) {
+      await prefs.remove(k);
+    }
   }
-
-  // ─────────────────────────────────────────────────────────
-  // DeepSeek API
-  // ─────────────────────────────────────────────────────────
 
   static String get _currentLang => LanguageService.getSavedLanguage() ?? 'ru';
 
@@ -99,25 +78,16 @@ class TranslationService {
           'messages': [
             {
               'role': 'system',
-              'content':
-                  'You are a translator. Translate the given text to $langName. '
-                  'Return ONLY the translation. No explanations, no quotes, '
-                  'no extra punctuation. Keep names and numbers as-is.',
+              'content': 'Translate to $langName. Return ONLY the translation. '
+                  'No explanations, no quotes. Keep names and numbers as-is.',
             },
-            {
-              'role': 'user',
-              'content': text,
-            }
+            {'role': 'user', 'content': text}
           ],
         },
       );
-      final result = response
-          .data['choices'][0]['message']['content']
-          ?.toString()
-          .trim();
-      return (result != null && result.isNotEmpty) ? result : null;
+      return response.data['choices'][0]['message']['content']?.toString().trim();
     } catch (_) {
-      return null; // при ошибке сети — показываем оригинал
+      return null; // При любой ошибке — оригинал
     }
   }
 }

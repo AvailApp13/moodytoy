@@ -62,6 +62,7 @@ class UserModel {
   final DateTime? birthDate;
   final String? bio;
   final String? city;
+  final String? avatarUrl;
   final List<String> photos;
   final String? avatarEmoji;
   final Mood? mood;
@@ -76,6 +77,7 @@ class UserModel {
     this.birthDate,
     this.bio,
     this.city,
+    this.avatarUrl,
     this.photos = const [],
     this.avatarEmoji,
     this.mood,
@@ -88,57 +90,48 @@ class UserModel {
   int? get age {
     if (birthDate == null) return null;
     final now = DateTime.now();
-    int age = now.year - birthDate!.year;
+    int a = now.year - birthDate!.year;
     if (now.month < birthDate!.month ||
-        (now.month == birthDate!.month && now.day < birthDate!.day)) {
-      age--;
-    }
-    return age;
+        (now.month == birthDate!.month && now.day < birthDate!.day)) a--;
+    return a;
   }
-
-  bool get isOnMap => locationEnabled && lat != null && lng != null;
 
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
-    'birthDate': birthDate?.toIso8601String(),
+    'birth_date': birthDate?.toIso8601String(),
     'bio': bio,
     'city': city,
+    'avatar_url': avatarUrl,
     'photos': photos,
-    'avatarEmoji': avatarEmoji,
+    'avatar_emoji': avatarEmoji,
     'mood': mood?.value,
-    'locationEnabled': locationEnabled,
+    'location_enabled': locationEnabled,
     'lat': lat,
     'lng': lng,
   };
 
   factory UserModel.fromJson(Map<String, dynamic> json) => UserModel(
-    id: json['id'] ?? '',
+    id: json['id']?.toString() ?? '',
     name: json['name'] ?? '',
-    birthDate: json['birthDate'] != null
-        ? DateTime.tryParse(json['birthDate'])
-        : null,
+    birthDate: json['birth_date'] != null
+        ? DateTime.tryParse(json['birth_date'].toString())
+        : (json['birthDate'] != null ? DateTime.tryParse(json['birthDate'].toString()) : null),
     bio: json['bio'],
     city: json['city'],
+    avatarUrl: json['avatar_url'] ?? json['avatarUrl'],
     photos: List<String>.from(json['photos'] ?? []),
-    avatarEmoji: json['avatarEmoji'],
+    avatarEmoji: json['avatar_emoji'] ?? json['avatarEmoji'] ?? '😊',
     mood: MoodExtension.fromString(json['mood']),
-    locationEnabled: json['locationEnabled'] ?? true,
+    locationEnabled: json['location_enabled'] ?? json['locationEnabled'] ?? true,
     lat: (json['lat'] as num?)?.toDouble(),
     lng: (json['lng'] as num?)?.toDouble(),
   );
 
   UserModel copyWith({
-    String? name,
-    DateTime? birthDate,
-    String? bio,
-    String? city,
-    List<String>? photos,
-    String? avatarEmoji,
-    Mood? mood,
-    bool? locationEnabled,
-    double? lat,
-    double? lng,
+    String? name, DateTime? birthDate, String? bio, String? city,
+    String? avatarUrl, List<String>? photos, String? avatarEmoji,
+    Mood? mood, bool? locationEnabled, double? lat, double? lng,
     double? distanceMeters,
   }) => UserModel(
     id: id,
@@ -146,6 +139,7 @@ class UserModel {
     birthDate: birthDate ?? this.birthDate,
     bio: bio ?? this.bio,
     city: city ?? this.city,
+    avatarUrl: avatarUrl ?? this.avatarUrl,
     photos: photos ?? this.photos,
     avatarEmoji: avatarEmoji ?? this.avatarEmoji,
     mood: mood ?? this.mood,
