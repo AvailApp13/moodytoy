@@ -16,10 +16,13 @@ dependencies:
   # State Management
   get: ^4.6.6
 
+  # Backend
+  supabase_flutter: ^2.3.0
+
   # Local Storage
   shared_preferences: ^2.2.3
 
-  # BLE (заглушка)
+  # BLE
   flutter_blue_plus: ^1.29.5
 
   # GPS
@@ -34,6 +37,9 @@ dependencies:
 
   # Biometrics (mock)
   local_auth: ^2.1.8
+
+  # HTTP (для DeepSeek API)
+  dio: ^5.4.3
 
   # Utils
   intl: ^0.19.0

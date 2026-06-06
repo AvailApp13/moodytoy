@@ -1,3 +1,4 @@
+import '../core/services/supabase_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
@@ -67,6 +68,7 @@ class App extends StatelessWidget {
 
   Future<void> _init() async {
     await LocalStorageService.init();
+    await SupabaseService.initialize();
     await _requestPermissions();
   }
 
