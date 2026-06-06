@@ -124,7 +124,7 @@ class ProfileScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(children: [
+                Row(children: [
                   Icon(Icons.edit_note_outlined,
                       size: 16, color: AppColors.textHint),
                   SizedBox(width: 6),
@@ -281,7 +281,7 @@ class ProfileScreen extends StatelessWidget {
             ),
           ],
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text('🧸', style: TextStyle(fontSize: 24)),
