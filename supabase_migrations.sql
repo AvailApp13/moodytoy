@@ -1,7 +1,4 @@
--- ═══════════════════════════════════════════════════════════
 -- MoodyToy — SQL миграции для Supabase
--- Выполнить в Dashboard → SQL Editor
--- ═══════════════════════════════════════════════════════════
 
 -- Таблица пользователей
 CREATE TABLE IF NOT EXISTS users (
@@ -87,41 +84,46 @@ CREATE TABLE IF NOT EXISTS user_toys (
 CREATE INDEX IF NOT EXISTS idx_users_location ON users(lat, lng) WHERE location_enabled = true;
 CREATE INDEX IF NOT EXISTS idx_users_mood ON users(mood);
 CREATE INDEX IF NOT EXISTS idx_users_device ON users(device_id);
-CREATE INDEX IF NOT EXISTS idx_friendships_requester ON friendships(requester_id);
-CREATE INDEX IF NOT EXISTS idx_friendships_receiver ON friendships(receiver_id);
+CREATE INDEX IF NOT EXISTS idx_friendships_req ON friendships(requester_id);
+CREATE INDEX IF NOT EXISTS idx_friendships_rec ON friendships(receiver_id);
 CREATE INDEX IF NOT EXISTS idx_messages_chat ON messages(chat_id, created_at);
 
--- RLS (Row Level Security)
+-- RLS
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE friendships ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_toys ENABLE ROW LEVEL SECURITY;
 
--- Политики: все могут читать пользователей (для MVP)
-CREATE POLICY IF NOT EXISTS "Users read all" ON users FOR SELECT USING (true);
-CREATE POLICY IF NOT EXISTS "Users insert own" ON users FOR INSERT WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "Users update own" ON users FOR UPDATE USING (true);
+-- Политики (DROP + CREATE — PostgreSQL не поддерживает IF NOT EXISTS для POLICY)
+DROP POLICY IF EXISTS "allow_all_select" ON users;
+DROP POLICY IF EXISTS "allow_all_insert" ON users;
+DROP POLICY IF EXISTS "allow_all_update" ON users;
+CREATE POLICY "allow_all_select" ON users FOR SELECT USING (true);
+CREATE POLICY "allow_all_insert" ON users FOR INSERT WITH CHECK (true);
+CREATE POLICY "allow_all_update" ON users FOR UPDATE USING (true);
 
-CREATE POLICY IF NOT EXISTS "Friendships read" ON friendships FOR SELECT USING (true);
-CREATE POLICY IF NOT EXISTS "Friendships insert" ON friendships FOR INSERT WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "Friendships update" ON friendships FOR UPDATE USING (true);
-CREATE POLICY IF NOT EXISTS "Friendships delete" ON friendships FOR DELETE USING (true);
+DROP POLICY IF EXISTS "allow_all_select" ON friendships;
+DROP POLICY IF EXISTS "allow_all_insert" ON friendships;
+DROP POLICY IF EXISTS "allow_all_update" ON friendships;
+DROP POLICY IF EXISTS "allow_all_delete" ON friendships;
+CREATE POLICY "allow_all_select" ON friendships FOR SELECT USING (true);
+CREATE POLICY "allow_all_insert" ON friendships FOR INSERT WITH CHECK (true);
+CREATE POLICY "allow_all_update" ON friendships FOR UPDATE USING (true);
+CREATE POLICY "allow_all_delete" ON friendships FOR DELETE USING (true);
 
-CREATE POLICY IF NOT EXISTS "Messages read" ON messages FOR SELECT USING (true);
-CREATE POLICY IF NOT EXISTS "Messages insert" ON messages FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "allow_all_select" ON messages;
+DROP POLICY IF EXISTS "allow_all_insert" ON messages;
+CREATE POLICY "allow_all_select" ON messages FOR SELECT USING (true);
+CREATE POLICY "allow_all_insert" ON messages FOR INSERT WITH CHECK (true);
 
-CREATE POLICY IF NOT EXISTS "Toys read" ON user_toys FOR SELECT USING (true);
-CREATE POLICY IF NOT EXISTS "Toys insert" ON user_toys FOR INSERT WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "Toys delete" ON user_toys FOR DELETE USING (true);
+DROP POLICY IF EXISTS "allow_all_select" ON user_toys;
+DROP POLICY IF EXISTS "allow_all_insert" ON user_toys;
+DROP POLICY IF EXISTS "allow_all_delete" ON user_toys;
+CREATE POLICY "allow_all_select" ON user_toys FOR SELECT USING (true);
+CREATE POLICY "allow_all_insert" ON user_toys FOR INSERT WITH CHECK (true);
+CREATE POLICY "allow_all_delete" ON user_toys FOR DELETE USING (true);
 
 -- Realtime
 ALTER PUBLICATION supabase_realtime ADD TABLE users;
 ALTER PUBLICATION supabase_realtime ADD TABLE friendships;
 ALTER PUBLICATION supabase_realtime ADD TABLE messages;
-
--- Storage bucket для аватарок
-INSERT INTO storage.buckets (id, name, public) VALUES ('avatars', 'avatars', true)
-ON CONFLICT DO NOTHING;
-
-CREATE POLICY IF NOT EXISTS "Avatar upload" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'avatars');
-CREATE POLICY IF NOT EXISTS "Avatar read" ON storage.objects FOR SELECT USING (bucket_id = 'avatars');

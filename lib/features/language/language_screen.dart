@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/language_service.dart';
-import '../main_nav/main_nav_screen.dart';
+import '../auth/auth_screen.dart';
 
 class LanguageScreen extends StatelessWidget {
   const LanguageScreen({super.key});
@@ -80,7 +80,7 @@ class _LanguageButton extends StatelessWidget {
       child: GestureDetector(
         onTap: () async {
           await LanguageService.setLanguage(code, country);
-          Get.offAll(() => const MainNavScreen());
+          Get.offAll(() => const AuthScreen());
         },
         child: Container(
           width: double.infinity,

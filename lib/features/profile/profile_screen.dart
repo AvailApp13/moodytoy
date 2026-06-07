@@ -2,6 +2,7 @@ import '../../shared/widgets/translated_text.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/services/language_service.dart';
 import '../language/language_screen.dart';
+import '../auth/auth_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/constants/app_colors.dart';
@@ -481,6 +482,16 @@ class _SettingsScreenState extends State<_SettingsScreen> {
           const SizedBox(height: 16),
           _sectionTitle('settings_language'.tr),
           _LanguageSettingItem(),
+          const SizedBox(height: 24),
+          _settingItem(
+            title: 'auth_logout'.tr,
+            subtitle: '',
+            icon: Icons.logout,
+            onTap: () async {
+              await _auth.signOut();
+              Get.offAll(() => const AuthScreen());
+            },
+          ),
         ],
       ),
     );

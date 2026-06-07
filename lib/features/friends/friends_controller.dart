@@ -1,6 +1,5 @@
 import 'package:get/get.dart';
 import '../../core/services/local_storage_service.dart';
-import '../../core/services/mock_data.dart';
 import '../../data/models/user_model.dart';
 import '../../data/repositories/supabase_repository.dart';
 import '../auth/auth_controller.dart';
@@ -16,16 +15,6 @@ class FriendsController extends GetxController {
   void onInit() {
     super.onInit();
     loadAll();
-    _addMockRequestsIfNeeded();
-  }
-
-  void _addMockRequestsIfNeeded() {
-    final existing = LocalStorageService.getIncomingRequests();
-    if (existing.isEmpty) {
-      LocalStorageService.addIncomingRequest('user_7');
-      LocalStorageService.addIncomingRequest('user_8');
-      loadAll();
-    }
   }
 
   Future<void> loadAll() async {
@@ -63,11 +52,9 @@ class FriendsController extends GetxController {
   }
 
   void _loadFromLocal() {
-    final friendIds = LocalStorageService.getFriends();
-    friends.value = friendIds.map((id) => MockData.getUserById(id)).toList();
-
-    final requestIds = LocalStorageService.getIncomingRequests();
-    incomingRequests.value = requestIds.map((id) => MockData.getUserById(id)).toList();
+    // Без Supabase — пустые списки (никаких моков)
+    friends.value = [];
+    incomingRequests.value = [];
   }
 
   FriendStatus getStatus(String userId) {
