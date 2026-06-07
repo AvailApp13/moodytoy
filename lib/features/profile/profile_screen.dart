@@ -4,6 +4,7 @@ import '../../core/services/language_service.dart';
 import '../language/language_screen.dart';
 import '../auth/auth_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../core/constants/app_colors.dart';
 import '../../data/models/user_model.dart';
@@ -85,6 +86,26 @@ class ProfileScreen extends StatelessWidget {
               [if (user.city != null) user.city!, if (user.age != null) '${user.age} лет'].join(' · '),
               style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
             ),
+          if (user.userId != null) GestureDetector(
+            onTap: () {
+              Clipboard.setData(ClipboardData(text: user.userId!));
+              Get.snackbar('', 'auth_id_copied'.tr,
+                  backgroundColor: AppColors.surface, colorText: Colors.white,
+                  snackPosition: SnackPosition.TOP,
+                  duration: const Duration(seconds: 2),
+                  margin: const EdgeInsets.all(16));
+            },
+            child: Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Text('ID: ${user.userId}',
+                    style: const TextStyle(color: AppColors.primary, fontSize: 13,
+                        fontWeight: FontWeight.w500)),
+                const SizedBox(width: 6),
+                const Icon(Icons.copy, size: 14, color: AppColors.primary),
+              ]),
+            ),
+          ),
         ],
       )),
       GestureDetector(

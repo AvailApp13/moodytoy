@@ -198,4 +198,20 @@ class SupabaseRepository {
       return [];
     }
   }
+
+  // ── Поиск пользователя по User ID (логину) ────────────
+  static Future<UserModel?> findUserByUserId(String userIdLogin) async {
+    try {
+      final data = await _client
+          .from('users')
+          .select()
+          .eq('user_id', userIdLogin)
+          .maybeSingle();
+      if (data == null) return null;
+      return UserModel.fromJson(data);
+    } catch (_) {
+      return null;
+    }
+  }
+
 }

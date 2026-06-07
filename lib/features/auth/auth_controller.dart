@@ -27,12 +27,31 @@ class AuthController extends GetxController {
   }
 
   // ── Регистрация ───────────────────────────────────────
+  // Проверка уникальности User ID (логина)
+  Future<bool> isUserIdAvailable(String userIdLogin) async {
+    try {
+      final existing = await SupabaseService.client
+          .from('users')
+          .select('id')
+          .eq('user_id', userIdLogin)
+          .maybeSingle();
+      return existing == null;
+    } catch (_) {
+      return true;
+    }
+  }
+
   Future<String?> signUp({
     required String name,
     required String email,
     required String password,
+    required String userIdLogin,
   }) async {
     try {
+      // Проверка уникальности User ID
+      final available = await isUserIdAvailable(userIdLogin);
+      if (!available) return 'auth_error_userid_taken'.tr;
+
       final response = await SupabaseService.client.auth.signUp(
         email: email,
         password: password,
@@ -41,12 +60,13 @@ class AuthController extends GetxController {
 
       if (response.user == null) return 'auth_error_general'.tr;
 
-      final userId = response.user!.id;
+      final authId = response.user!.id;
 
       // Создаём профиль в нашей таблице users
       try {
         await SupabaseService.client.from('users').insert({
-          'id': userId,
+          'id': authId,
+          'user_id': userIdLogin,
           'name': name,
           'email': email,
           'avatar_emoji': '😊',
@@ -61,13 +81,11 @@ class AuthController extends GetxController {
           await SupabaseService.client.auth.signInWithPassword(
             email: email, password: password);
         } catch (_) {
-          // Если email confirmation требуется — sign in не пройдёт
-          // Возвращаем понятную ошибку
           return 'Подтвердите email или отключите подтверждение в Supabase';
         }
       }
 
-      await _loadUserProfile(userId);
+      await _loadUserProfile(authId);
 
       if (currentUser.value == null) {
         return 'Не удалось загрузить профиль. Попробуйте войти ещё раз.';

@@ -58,6 +58,7 @@ extension MoodExtension on Mood {
 
 class UserModel {
   final String id;
+  final String? userId;
   final String name;
   final DateTime? birthDate;
   final String? bio;
@@ -73,6 +74,7 @@ class UserModel {
 
   UserModel({
     required this.id,
+    this.userId,
     required this.name,
     this.birthDate,
     this.bio,
@@ -98,6 +100,7 @@ class UserModel {
 
   Map<String, dynamic> toJson() => {
     'id': id,
+    'user_id': userId,
     'name': name,
     'birth_date': birthDate?.toIso8601String(),
     'bio': bio,
@@ -113,6 +116,7 @@ class UserModel {
 
   factory UserModel.fromJson(Map<String, dynamic> json) => UserModel(
     id: json['id']?.toString() ?? '',
+    userId: json['user_id'],
     name: json['name'] ?? '',
     birthDate: json['birth_date'] != null
         ? DateTime.tryParse(json['birth_date'].toString())
@@ -129,12 +133,14 @@ class UserModel {
   );
 
   UserModel copyWith({
+    String? userId,
     String? name, DateTime? birthDate, String? bio, String? city,
     String? avatarUrl, List<String>? photos, String? avatarEmoji,
     Mood? mood, bool? locationEnabled, double? lat, double? lng,
     double? distanceMeters,
   }) => UserModel(
     id: id,
+    userId: userId ?? this.userId,
     name: name ?? this.name,
     birthDate: birthDate ?? this.birthDate,
     bio: bio ?? this.bio,

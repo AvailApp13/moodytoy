@@ -17,6 +17,7 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _obscurePassword = true;
 
   final _nameCtrl = TextEditingController();
+  final _userIdCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _confirmCtrl = TextEditingController();
@@ -24,6 +25,7 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   void dispose() {
     _nameCtrl.dispose();
+    _userIdCtrl.dispose();
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
     _confirmCtrl.dispose();
@@ -67,6 +69,12 @@ class _AuthScreenState extends State<AuthScreen> {
                 ctrl: _nameCtrl,
                 label: 'auth_name'.tr,
                 icon: Icons.person_outline,
+              ),
+              if (_isRegister) const SizedBox(height: 12),
+              if (_isRegister) _buildField(
+                ctrl: _userIdCtrl,
+                label: 'auth_userid'.tr,
+                icon: Icons.alternate_email,
               ),
               if (_isRegister) const SizedBox(height: 12),
               _buildField(
@@ -236,7 +244,7 @@ class _AuthScreenState extends State<AuthScreen> {
     final password = _passwordCtrl.text;
 
     // Email regex — строгая валидация
-    final emailRegex = RegExp(r'^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\$');
+    final emailRegex = RegExp(r'^[\w.+-]+@[\w-]+\.[\w.-]+$');
     if (!emailRegex.hasMatch(email)) {
       _showError('auth_error_email'.tr);
       return;
@@ -252,6 +260,13 @@ class _AuthScreenState extends State<AuthScreen> {
         _showError('auth_error_name'.tr);
         return;
       }
+      // User ID: только латиница и цифры, минимум 6 символов
+      final userIdLogin = _userIdCtrl.text.trim();
+      final userIdRegex = RegExp(r'^[a-zA-Z0-9]+$');
+      if (userIdLogin.length < 6 || !userIdRegex.hasMatch(userIdLogin)) {
+        _showError('auth_error_userid_invalid'.tr);
+        return;
+      }
       if (password != _confirmCtrl.text) {
         _showError('auth_error_password_mismatch'.tr);
         return;
@@ -261,7 +276,7 @@ class _AuthScreenState extends State<AuthScreen> {
     setState(() => _isLoading = true);
     final auth = Get.find<AuthController>();
     final error = _isRegister
-        ? await auth.signUp(name: _nameCtrl.text.trim(), email: email, password: password)
+        ? await auth.signUp(name: _nameCtrl.text.trim(), email: email, password: password, userIdLogin: _userIdCtrl.text.trim())
         : await auth.signIn(email: email, password: password);
 
     if (!mounted) return;

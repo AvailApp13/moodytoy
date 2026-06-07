@@ -6,6 +6,8 @@ import '../../data/models/user_model.dart';
 import '../chats/chats_controller.dart';
 import '../chats/chats_screen.dart';
 import 'friends_controller.dart';
+import '../../data/repositories/supabase_repository.dart';
+import '../auth/auth_controller.dart';
 
 class FriendsScreen extends StatelessWidget {
   const FriendsScreen({super.key});
@@ -24,6 +26,8 @@ class FriendsScreen extends StatelessWidget {
                 builder: (c) => ListView(
                   padding: const EdgeInsets.all(12),
                   children: [
+                    const _FriendSearchBar(),
+                    const SizedBox(height: 12),
                     if (c.incomingRequests.isNotEmpty) ...[
                       _sectionLabel('incoming_requests'.tr),
                       ...c.incomingRequests.map(
@@ -417,5 +421,179 @@ class _ChatPageState extends State<_ChatPage> {
     if (text.isEmpty) return;
     _textCtrl.clear();
     _chatsCtrl.sendMessage(widget.chatId, text);
+  }
+}
+
+
+// ── Поиск друга по User ID ────────────────────────────────
+class _FriendSearchBar extends StatefulWidget {
+  const _FriendSearchBar();
+  @override
+  State<_FriendSearchBar> createState() => _FriendSearchBarState();
+}
+
+class _FriendSearchBarState extends State<_FriendSearchBar> {
+  final _ctrl = TextEditingController();
+  bool _searching = false;
+  bool _searched = false;
+  UserModel? _result;
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _search() async {
+    final query = _ctrl.text.trim();
+    if (query.isEmpty) return;
+    setState(() { _searching = true; _searched = false; _result = null; });
+
+    final user = await SupabaseRepository.findUserByUserId(query);
+    final myId = Get.find<AuthController>().currentUser.value?.userId;
+
+    if (!mounted) return;
+    setState(() {
+      _searching = false;
+      _searched = true;
+      // Не показываем самого себя
+      _result = (user != null && user.userId != myId) ? user : null;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(children: [
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.card,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border, width: 0.5),
+              ),
+              child: TextField(
+                controller: _ctrl,
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: 'friend_search_hint'.tr,
+                  hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 14),
+                  prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary, size: 20),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                onSubmitted: (_) => _search(),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: _searching ? null : _search,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: _searching
+                  ? const SizedBox(width: 18, height: 18,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : Text('friend_search_btn'.tr,
+                      style: const TextStyle(color: Colors.white, fontSize: 14,
+                          fontWeight: FontWeight.w600)),
+            ),
+          ),
+        ]),
+        if (_searched && _result == null)
+          Padding(
+            padding: const EdgeInsets.only(top: 12, left: 4),
+            child: Text('friend_not_found'.tr,
+                style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+          ),
+        if (_result != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: _SearchResultCard(user: _result!, onAdded: () {
+              setState(() { _result = null; _searched = false; _ctrl.clear(); });
+            }),
+          ),
+      ],
+    );
+  }
+}
+
+class _SearchResultCard extends StatelessWidget {
+  final UserModel user;
+  final VoidCallback onAdded;
+  const _SearchResultCard({required this.user, required this.onAdded});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.primary, width: 1),
+      ),
+      child: Row(children: [
+        Container(
+          width: 46, height: 46,
+          decoration: BoxDecoration(
+            color: user.mood?.color.withOpacity(0.2) ?? AppColors.surfaceVariant,
+            shape: BoxShape.circle,
+          ),
+          child: Center(child: Text(user.avatarEmoji ?? '👤',
+              style: const TextStyle(fontSize: 22))),
+        ),
+        const SizedBox(width: 12),
+        Expanded(child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TranslatedText(user.name, style: const TextStyle(
+                color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
+            if (user.userId != null)
+              Text('ID: ${user.userId}',
+                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+          ],
+        )),
+        GetBuilder<FriendsController>(
+          builder: (fc) {
+            final status = fc.getStatus(user.id);
+            if (status == FriendStatus.friend) {
+              return Text('btn_friend_label'.tr,
+                  style: const TextStyle(color: AppColors.success, fontSize: 12));
+            }
+            if (status == FriendStatus.outgoing) {
+              return Text('btn_request_sent'.tr,
+                  style: const TextStyle(color: AppColors.textHint, fontSize: 12));
+            }
+            return GestureDetector(
+              onTap: () {
+                fc.sendRequest(user.id);
+                onAdded();
+                Get.snackbar('', 'btn_request_sent'.tr,
+                    backgroundColor: AppColors.surface, colorText: Colors.white,
+                    snackPosition: SnackPosition.TOP,
+                    duration: const Duration(seconds: 2),
+                    margin: const EdgeInsets.all(16));
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.primary, width: 1),
+                ),
+                child: Text('btn_friend'.tr,
+                    style: const TextStyle(color: AppColors.primary, fontSize: 12)),
+              ),
+            );
+          },
+        ),
+      ]),
+    );
   }
 }
