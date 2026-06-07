@@ -41,26 +41,42 @@ class AuthController extends GetxController {
 
       if (response.user == null) return 'auth_error_general'.tr;
 
+      final userId = response.user!.id;
+
       // Создаём профиль в нашей таблице users
       try {
         await SupabaseService.client.from('users').insert({
-          'id': response.user!.id,
+          'id': userId,
           'name': name,
           'email': email,
           'avatar_emoji': '😊',
           'mood': 'coffee',
           'location_enabled': true,
         });
-      } catch (_) {
-        // если профиль уже есть — продолжаем
+      } catch (_) {}
+
+      // Если сессии нет (включено email confirmation) — пробуем войти сразу
+      if (response.session == null) {
+        try {
+          await SupabaseService.client.auth.signInWithPassword(
+            email: email, password: password);
+        } catch (_) {
+          // Если email confirmation требуется — sign in не пройдёт
+          // Возвращаем понятную ошибку
+          return 'Подтвердите email или отключите подтверждение в Supabase';
+        }
       }
 
-      await _loadUserProfile(response.user!.id);
+      await _loadUserProfile(userId);
+
+      if (currentUser.value == null) {
+        return 'Не удалось загрузить профиль. Попробуйте войти ещё раз.';
+      }
       return null;
     } on AuthException catch (e) {
-      return _translateAuthError(e.message);
-    } catch (_) {
-      return 'auth_error_general'.tr;
+      return e.message; // показываем точное сообщение от Supabase
+    } catch (e) {
+      return 'Ошибка: ${e.toString()}';
     }
   }
 
@@ -74,13 +90,16 @@ class AuthController extends GetxController {
         email: email,
         password: password,
       );
-      if (response.user == null) return 'auth_error_general'.tr;
+      if (response.user == null) return 'auth_error_invalid'.tr;
       await _loadUserProfile(response.user!.id);
+      if (currentUser.value == null) {
+        return 'Не удалось загрузить профиль';
+      }
       return null;
     } on AuthException catch (e) {
-      return _translateAuthError(e.message);
-    } catch (_) {
-      return 'auth_error_general'.tr;
+      return e.message;
+    } catch (e) {
+      return 'Ошибка: ${e.toString()}';
     }
   }
 

@@ -228,11 +228,16 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<void> _submit() async {
-    final email = _emailCtrl.text.trim();
+    // Закрываем предыдущие snackbar'ы
+    if (Get.isSnackbarOpen) Get.closeAllSnackbars();
+
+    // Нормализация
+    final email = _emailCtrl.text.trim().toLowerCase();
     final password = _passwordCtrl.text;
 
-    // Валидация
-    if (email.isEmpty || !email.contains('@')) {
+    // Email regex — строгая валидация
+    final emailRegex = RegExp(r'^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\$');
+    if (!emailRegex.hasMatch(email)) {
       _showError('auth_error_email'.tr);
       return;
     }
@@ -270,11 +275,12 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   void _showError(String msg) {
+    if (Get.isSnackbarOpen) Get.closeAllSnackbars();
     Get.snackbar('', msg,
         snackPosition: SnackPosition.TOP,
         backgroundColor: AppColors.error,
         colorText: Colors.white,
-        duration: const Duration(seconds: 3),
+        duration: const Duration(seconds: 4),
         margin: const EdgeInsets.all(16));
   }
 }
