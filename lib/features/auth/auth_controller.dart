@@ -98,14 +98,52 @@ class AuthController extends GetxController {
   // ── Загрузка профиля из Supabase ──────────────────────
   Future<void> _loadUserProfile(String userId) async {
     try {
-      final data = await SupabaseService.client
+      final authUser = SupabaseService.client.auth.currentUser;
+      var data = await SupabaseService.client
           .from('users')
           .select()
           .eq('id', userId)
           .maybeSingle();
 
+      // Если профиля нет — создаём автоматически
+      if (data == null && authUser != null) {
+        final name = (authUser.userMetadata?['name'] as String?)
+            ?? authUser.email?.split('@').first
+            ?? 'Гость';
+        try {
+          await SupabaseService.client.from('users').insert({
+            'id': userId,
+            'name': name,
+            'email': authUser.email,
+            'avatar_emoji': '😊',
+            'mood': 'coffee',
+            'location_enabled': true,
+          });
+          data = await SupabaseService.client
+              .from('users')
+              .select()
+              .eq('id', userId)
+              .maybeSingle();
+        } catch (_) {}
+      }
+
       if (data != null) {
         final user = UserModel.fromJson(data);
+        currentUser.value = user;
+        isLoggedIn.value = true;
+        isSupabaseUser.value = true;
+        await LocalStorageService.saveCurrentUser(user);
+      } else if (authUser != null) {
+        // Fallback: создаём локальный профиль из данных auth
+        final name = (authUser.userMetadata?['name'] as String?)
+            ?? authUser.email?.split('@').first
+            ?? 'Гость';
+        final user = UserModel(
+          id: userId,
+          name: name,
+          avatarEmoji: '😊',
+          mood: Mood.coffee,
+        );
         currentUser.value = user;
         isLoggedIn.value = true;
         isSupabaseUser.value = true;
