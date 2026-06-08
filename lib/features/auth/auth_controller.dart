@@ -62,9 +62,19 @@ class AuthController extends GetxController {
 
       final authId = response.user!.id;
 
-      // Создаём профиль в нашей таблице users
+      // Если сессии нет — входим (нужна сессия чтобы прошёл RLS на INSERT)
+      if (response.session == null) {
+        try {
+          await SupabaseService.client.auth.signInWithPassword(
+            email: email, password: password);
+        } catch (_) {
+          return 'Подтвердите email или отключите подтверждение в Supabase';
+        }
+      }
+
+      // Теперь сессия есть — upsert профиля С user_id (insert или update)
       try {
-        await SupabaseService.client.from('users').insert({
+        await SupabaseService.client.from('users').upsert({
           'id': authId,
           'user_id': userIdLogin,
           'name': name,
@@ -73,16 +83,8 @@ class AuthController extends GetxController {
           'mood': 'coffee',
           'location_enabled': true,
         });
-      } catch (_) {}
-
-      // Если сессии нет (включено email confirmation) — пробуем войти сразу
-      if (response.session == null) {
-        try {
-          await SupabaseService.client.auth.signInWithPassword(
-            email: email, password: password);
-        } catch (_) {
-          return 'Подтвердите email или отключите подтверждение в Supabase';
-        }
+      } catch (e) {
+        return 'Не удалось сохранить профиль: ${e.toString()}';
       }
 
       await _loadUserProfile(authId);
