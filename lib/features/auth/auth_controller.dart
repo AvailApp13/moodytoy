@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/services/local_storage_service.dart';
@@ -9,11 +10,30 @@ class AuthController extends GetxController {
   final currentUser = Rxn<UserModel>();
   final isSupabaseUser = false.obs;
   final isLoggedIn = false.obs;
+  Timer? _heartbeat;
 
   @override
   void onInit() {
     super.onInit();
     _checkSession();
+    // Heartbeat: обновляем last_seen_at каждую минуту
+    _heartbeat = Timer.periodic(const Duration(seconds: 60), (_) => _ping());
+  }
+
+  @override
+  void onClose() {
+    _heartbeat?.cancel();
+    super.onClose();
+  }
+
+  Future<void> _ping() async {
+    final u = currentUser.value;
+    if (u == null || !isSupabaseUser.value) return;
+    try {
+      await SupabaseService.client.from('users')
+          .update({'last_seen_at': DateTime.now().toIso8601String()})
+          .eq('id', u.id);
+    } catch (_) {}
   }
 
   // ── Проверка существующей сессии ──────────────────────
@@ -185,6 +205,7 @@ class AuthController extends GetxController {
         isLoggedIn.value = true;
         isSupabaseUser.value = true;
         await LocalStorageService.saveCurrentUser(user);
+        _ping();
       } else if (authUser != null) {
         // Fallback: создаём локальный профиль из данных auth
         final name = (authUser.userMetadata?['name'] as String?)

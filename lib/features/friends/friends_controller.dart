@@ -67,13 +67,10 @@ class FriendsController extends GetxController {
 
   Future<void> _loadFromSupabase(String userId) async {
     try {
-      // Друзья
+      // Друзья (репозиторий теперь возвращает профили друзей напрямую)
       final friendsData = await SupabaseRepository.getFriends(userId);
-      friends.value = friendsData.map((f) {
-        final isRequester = f['requester_id'] == userId;
-        final userData = isRequester ? f['receiver'] : f['requester'];
-        return UserModel.fromJson(userData);
-      }).toList();
+      friends.value =
+          friendsData.map((u) => UserModel.fromJson(u)).toList();
 
       // Входящие запросы
       final requestsData = await SupabaseRepository.getIncomingRequests(userId);

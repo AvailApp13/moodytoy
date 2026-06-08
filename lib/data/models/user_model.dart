@@ -71,6 +71,7 @@ class UserModel {
   final double? lat;
   final double? lng;
   double? distanceMeters;
+  final DateTime? lastSeenAt;
 
   UserModel({
     required this.id,
@@ -87,7 +88,13 @@ class UserModel {
     this.lat,
     this.lng,
     this.distanceMeters,
+    this.lastSeenAt,
   });
+
+  bool get isOnline {
+    if (lastSeenAt == null) return false;
+    return DateTime.now().difference(lastSeenAt!).inMinutes < 2;
+  }
 
   int? get age {
     if (birthDate == null) return null;
@@ -130,6 +137,8 @@ class UserModel {
     locationEnabled: json['location_enabled'] ?? json['locationEnabled'] ?? true,
     lat: (json['lat'] as num?)?.toDouble(),
     lng: (json['lng'] as num?)?.toDouble(),
+    lastSeenAt: json['last_seen_at'] != null
+        ? DateTime.tryParse(json['last_seen_at'].toString()) : null,
   );
 
   UserModel copyWith({

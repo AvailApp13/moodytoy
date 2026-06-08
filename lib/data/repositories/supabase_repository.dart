@@ -107,12 +107,29 @@ class SupabaseRepository {
   // ── Друзья: получить список друзей ────────────────────
   static Future<List<Map<String, dynamic>>> getFriends(String userId) async {
     try {
-      final result = await _client
+      // 1. Берём принятые дружбы где участвует пользователь
+      final rows = await _client
           .from('friendships')
-          .select('*, requester:users!requester_id(*), receiver:users!receiver_id(*)')
+          .select('requester_id, receiver_id')
           .or('requester_id.eq.$userId,receiver_id.eq.$userId')
           .eq('status', 'accepted');
-      return List<Map<String, dynamic>>.from(result);
+
+      // 2. Собираем ID "других" пользователей (друзей)
+      final friendIds = <String>[];
+      for (final r in (rows as List)) {
+        final reqId = r['requester_id'] as String;
+        final recId = r['receiver_id'] as String;
+        friendIds.add(reqId == userId ? recId : reqId);
+      }
+      if (friendIds.isEmpty) return [];
+
+      // 3. Грузим профили друзей одним запросом
+      final users = await _client
+          .from('users')
+          .select()
+          .inFilter('id', friendIds);
+
+      return List<Map<String, dynamic>>.from(users);
     } catch (_) {
       return [];
     }
@@ -121,12 +138,28 @@ class SupabaseRepository {
   // ── Друзья: получить входящие запросы ─────────────────
   static Future<List<Map<String, dynamic>>> getIncomingRequests(String userId) async {
     try {
-      final result = await _client
+      // Берём pending-запросы где я получатель
+      final rows = await _client
           .from('friendships')
-          .select('*, requester:users!requester_id(*)')
+          .select('id, requester_id')
           .eq('receiver_id', userId)
           .eq('status', 'pending');
-      return List<Map<String, dynamic>>.from(result);
+
+      final result = <Map<String, dynamic>>[];
+      for (final r in (rows as List)) {
+        final requesterId = r['requester_id'] as String;
+        // Грузим профиль отправителя
+        final requester = await _client
+            .from('users').select().eq('id', requesterId).maybeSingle();
+        if (requester != null) {
+          result.add({
+            'id': r['id'],
+            'requester_id': requesterId,
+            'requester': requester,
+          });
+        }
+      }
+      return result;
     } catch (_) {
       return [];
     }

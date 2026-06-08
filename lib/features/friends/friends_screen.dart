@@ -202,17 +202,30 @@ class _FriendCard extends StatelessWidget {
           border: Border.all(color: AppColors.border, width: 0.5),
         ),
         child: Row(children: [
-          Container(
-            width: 46, height: 46,
-            decoration: BoxDecoration(
-              color: user.mood?.color.withOpacity(0.2) ?? AppColors.surfaceVariant,
-              shape: BoxShape.circle,
-              border: Border.all(
-                  color: user.mood?.color ?? AppColors.border, width: 2),
+          Stack(children: [
+            Container(
+              width: 46, height: 46,
+              decoration: BoxDecoration(
+                color: user.mood?.color.withOpacity(0.2) ?? AppColors.surfaceVariant,
+                shape: BoxShape.circle,
+                border: Border.all(
+                    color: user.mood?.color ?? AppColors.border, width: 2),
+              ),
+              child: Center(child: Text(user.avatarEmoji ?? '👤',
+                  style: const TextStyle(fontSize: 22))),
             ),
-            child: Center(child: Text(user.avatarEmoji ?? '👤',
-                style: const TextStyle(fontSize: 22))),
-          ),
+            if (user.isOnline) Positioned(
+              right: 0, bottom: 0,
+              child: Container(
+                width: 14, height: 14,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4CAF50),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.card, width: 2),
+                ),
+              ),
+            ),
+          ]),
           const SizedBox(width: 12),
           Expanded(child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -243,31 +256,85 @@ class _FriendCard extends StatelessWidget {
             decoration: BoxDecoration(color: AppColors.border,
                 borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 20),
-          Row(children: [
+          // Аватар с настроением + онлайн
+          Stack(children: [
             Container(
-              width: 64, height: 64,
+              width: 88, height: 88,
               decoration: BoxDecoration(
                 color: user.mood?.color.withOpacity(0.2) ?? AppColors.surfaceVariant,
                 shape: BoxShape.circle,
                 border: Border.all(
-                    color: user.mood?.color ?? AppColors.border, width: 2),
+                    color: user.mood?.color ?? AppColors.border, width: 3),
               ),
               child: Center(child: Text(user.avatarEmoji ?? '👤',
-                  style: const TextStyle(fontSize: 30))),
+                  style: const TextStyle(fontSize: 44))),
             ),
-            const SizedBox(width: 16),
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('${user.name}, ${user.age ?? '?'}',
-                  style: const TextStyle(color: Colors.white,
-                      fontSize: 18, fontWeight: FontWeight.bold)),
-              if (user.mood != null)
-                Text('${user.mood!.emoji} ${user.mood!.label}',
-                    style: TextStyle(color: user.mood!.color, fontSize: 13)),
-              if (user.bio != null)
-                TranslatedText(user.bio,
-                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-            ]),
+            if (user.isOnline) Positioned(
+              right: 4, bottom: 4,
+              child: Container(
+                width: 18, height: 18,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4CAF50),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.surface, width: 3),
+                ),
+              ),
+            ),
           ]),
+          const SizedBox(height: 12),
+          // Имя + возраст
+          Text(
+            user.age != null ? '${user.name}, ${user.age}' : user.name,
+            style: const TextStyle(color: Colors.white,
+                fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          // Онлайн/офлайн
+          Text(
+            user.isOnline ? 'status_online'.tr : 'status_offline'.tr,
+            style: TextStyle(
+                color: user.isOnline ? const Color(0xFF4CAF50) : AppColors.textHint,
+                fontSize: 13),
+          ),
+          const SizedBox(height: 16),
+          // Настроение в цвете
+          if (user.mood != null) Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: user.mood!.color.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: user.mood!.color, width: 1),
+            ),
+            child: Text('${user.mood!.emoji} ${user.mood!.label}',
+                style: TextStyle(color: user.mood!.color, fontSize: 14,
+                    fontWeight: FontWeight.w600)),
+          ),
+          const SizedBox(height: 16),
+          // Карточка с инфо: город, о себе
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.card,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              _sheetRow(Icons.location_on_outlined, 'profile_city'.tr,
+                  user.city?.isNotEmpty == true ? user.city! : 'profile_not_set'.tr),
+              const SizedBox(height: 12),
+              _sheetRow(Icons.cake_outlined, 'profile_age'.tr,
+                  user.age != null ? '${user.age}' : 'profile_not_set'.tr),
+              if (user.bio?.isNotEmpty == true) ...[
+                const SizedBox(height: 12),
+                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Icon(Icons.chat_bubble_outline, size: 18, color: AppColors.textHint),
+                  const SizedBox(width: 10),
+                  Expanded(child: TranslatedText(user.bio,
+                      style: const TextStyle(color: Colors.white, fontSize: 14))),
+                ]),
+              ],
+            ]),
+          ),
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
@@ -289,6 +356,16 @@ class _FriendCard extends StatelessWidget {
         ]),
       ),
     );
+  }
+
+  Widget _sheetRow(IconData icon, String label, String value) {
+    return Row(children: [
+      Icon(icon, size: 18, color: AppColors.textHint),
+      const SizedBox(width: 10),
+      Text('$label: ', style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+      Expanded(child: Text(value,
+          style: const TextStyle(color: Colors.white, fontSize: 14))),
+    ]);
   }
 }
 

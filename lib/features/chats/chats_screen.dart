@@ -495,6 +495,13 @@ class _MessageBubble extends StatelessWidget {
                                   color: Colors.white, fontSize: 14)),
                         ),
                 ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 2, left: 4, right: 4),
+                  child: Text(
+                    '${message.time.hour.toString().padLeft(2, '0')}:${message.time.minute.toString().padLeft(2, '0')}',
+                    style: const TextStyle(fontSize: 10, color: AppColors.textHint),
+                  ),
+                ),
               ],
             ),
           ),
