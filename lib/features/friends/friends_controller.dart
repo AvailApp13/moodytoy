@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:get/get.dart';
-import '../../core/services/local_storage_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/services/supabase_service.dart';
 import '../../data/models/user_model.dart';
 import '../../data/repositories/supabase_repository.dart';
 import '../auth/auth_controller.dart';
@@ -9,12 +11,46 @@ enum FriendStatus { none, outgoing, incoming, friend }
 class FriendsController extends GetxController {
   final friends = <UserModel>[].obs;
   final incomingRequests = <UserModel>[].obs;
+  final outgoingRequestIds = <String>[].obs;
   final _incomingRequestIds = <String, String>{}; // friendshipId → requesterId
+
+  RealtimeChannel? _channel;
+  Timer? _pollTimer;
+
+  String get _myId => Get.find<AuthController>().currentUser.value?.id ?? '';
 
   @override
   void onInit() {
     super.onInit();
     loadAll();
+    _subscribeRealtime();
+    // Fallback-опрос раз в 15 сек (на случай если Realtime не сработал)
+    _pollTimer = Timer.periodic(const Duration(seconds: 15), (_) => loadAll());
+  }
+
+  @override
+  void onClose() {
+    _channel?.unsubscribe();
+    _pollTimer?.cancel();
+    super.onClose();
+  }
+
+  // ── Realtime: реагируем на изменения в friendships ────
+  void _subscribeRealtime() {
+    try {
+      _channel = SupabaseService.client
+          .channel('public:friendships')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'friendships',
+            callback: (payload) {
+              // Любое изменение дружбы — перезагружаем списки
+              loadAll();
+            },
+          )
+          .subscribe();
+    } catch (_) {}
   }
 
   Future<void> loadAll() async {
@@ -46,54 +82,52 @@ class FriendsController extends GetxController {
         _incomingRequestIds[r['id']] = r['requester_id'];
         return UserModel.fromJson(r['requester']);
       }).toList();
+
+      // Исходящие (чтобы кнопка показывала "Запрос отправлен")
+      outgoingRequestIds.value =
+          await SupabaseRepository.getOutgoingRequestIds(userId);
     } catch (_) {
       _loadFromLocal();
     }
   }
 
   void _loadFromLocal() {
-    // Без Supabase — пустые списки (никаких моков)
     friends.value = [];
     incomingRequests.value = [];
+    outgoingRequestIds.value = [];
   }
+
+  int get incomingCount => incomingRequests.length;
 
   FriendStatus getStatus(String userId) {
     if (friends.any((u) => u.id == userId)) return FriendStatus.friend;
     if (incomingRequests.any((u) => u.id == userId)) return FriendStatus.incoming;
-    if (LocalStorageService.getOutgoingRequests().contains(userId)) return FriendStatus.outgoing;
-    if (LocalStorageService.getFriends().contains(userId)) return FriendStatus.friend;
+    if (outgoingRequestIds.contains(userId)) return FriendStatus.outgoing;
     return FriendStatus.none;
   }
 
   Future<void> sendRequest(String targetUserId) async {
     final auth = Get.find<AuthController>();
     if (auth.isSupabaseUser.value) {
-      await SupabaseRepository.sendFriendRequest(auth.currentUser.value!.id, targetUserId);
+      await SupabaseRepository.sendFriendRequest(_myId, targetUserId);
     }
-    await LocalStorageService.addOutgoingRequest(targetUserId);
     await loadAll();
   }
 
   Future<void> acceptRequest(String userId) async {
     final auth = Get.find<AuthController>();
-
     if (auth.isSupabaseUser.value) {
-      // Ищем friendshipId
       final fId = _incomingRequestIds.entries
           .where((e) => e.value == userId)
           .map((e) => e.key)
           .firstOrNull;
       if (fId != null) await SupabaseRepository.acceptFriendRequest(fId);
     }
-
-    await LocalStorageService.removeIncomingRequest(userId);
-    await LocalStorageService.addFriend(userId);
     await loadAll();
   }
 
   Future<void> declineRequest(String userId) async {
     final auth = Get.find<AuthController>();
-
     if (auth.isSupabaseUser.value) {
       final fId = _incomingRequestIds.entries
           .where((e) => e.value == userId)
@@ -101,8 +135,6 @@ class FriendsController extends GetxController {
           .firstOrNull;
       if (fId != null) await SupabaseRepository.declineFriendRequest(fId);
     }
-
-    await LocalStorageService.removeIncomingRequest(userId);
     await loadAll();
   }
 
