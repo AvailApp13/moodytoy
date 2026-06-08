@@ -15,6 +15,7 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _isRegister = true;
   bool _isLoading = false;
   bool _obscurePassword = true;
+  bool _acceptedTerms = false;
 
   final _nameCtrl = TextEditingController();
   final _userIdCtrl = TextEditingController();
@@ -121,6 +122,38 @@ class _AuthScreenState extends State<AuthScreen> {
                 ),
               ),
               const SizedBox(height: 16),
+              // Обязательное согласие (только при регистрации)
+              if (_isRegister) Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 24, height: 24,
+                      child: Checkbox(
+                        value: _acceptedTerms,
+                        onChanged: (v) => setState(() => _acceptedTerms = v ?? false),
+                        activeColor: AppColors.primary,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(5)),
+                        side: const BorderSide(color: AppColors.border, width: 1.5),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _acceptedTerms = !_acceptedTerms),
+                        child: Text(
+                          'auth_terms_consent'.tr,
+                          style: const TextStyle(
+                              color: AppColors.textSecondary, fontSize: 12, height: 1.4),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (_isRegister) const SizedBox(height: 12),
               // Кнопка действия
               SizedBox(
                 width: double.infinity, height: 52,
@@ -157,7 +190,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              Text('v1.0.6 (build 7)',
+              Text('v1.0.7 (build 8)',
                   style: TextStyle(color: AppColors.textHint.withOpacity(0.4), fontSize: 11)),
               const SizedBox(height: 24),
             ],
@@ -272,6 +305,11 @@ class _AuthScreenState extends State<AuthScreen> {
       }
       if (password != _confirmCtrl.text) {
         _showError('auth_error_password_mismatch'.tr);
+        return;
+      }
+      // Обязательное согласие с условиями
+      if (!_acceptedTerms) {
+        _showError('auth_error_terms'.tr);
         return;
       }
     }
