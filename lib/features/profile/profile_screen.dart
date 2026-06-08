@@ -516,6 +516,11 @@ class _SettingsScreenState extends State<_SettingsScreen> {
               Get.offAll(() => const AuthScreen());
             },
           ),
+          const SizedBox(height: 16),
+          Center(
+            child: Text('v1.0.2 (build 3)',
+                style: TextStyle(color: AppColors.textHint.withOpacity(0.5), fontSize: 11)),
+          ),
         ],
       ),
     );

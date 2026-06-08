@@ -28,16 +28,22 @@ class AuthController extends GetxController {
 
   // ── Регистрация ───────────────────────────────────────
   // Проверка уникальности User ID (логина)
-  Future<bool> isUserIdAvailable(String userIdLogin) async {
+  // Возвращает: null = доступен, иначе текст ошибки
+  Future<String?> checkUserId(String userIdLogin) async {
     try {
       final existing = await SupabaseService.client
           .from('users')
           .select('id')
           .eq('user_id', userIdLogin)
           .maybeSingle();
-      return existing == null;
-    } catch (_) {
-      return true;
+      return existing == null ? null : 'auth_error_userid_taken'.tr;
+    } catch (e) {
+      // Если колонка user_id отсутствует — Supabase вернёт ошибку
+      final msg = e.toString().toLowerCase();
+      if (msg.contains('user_id') || msg.contains('column') || msg.contains('does not exist')) {
+        return 'База не настроена: выполните SQL (колонка user_id). $e';
+      }
+      return null; // прочие ошибки — считаем доступным
     }
   }
 
@@ -48,9 +54,9 @@ class AuthController extends GetxController {
     required String userIdLogin,
   }) async {
     try {
-      // Проверка уникальности User ID
-      final available = await isUserIdAvailable(userIdLogin);
-      if (!available) return 'auth_error_userid_taken'.tr;
+      // Проверка уникальности User ID (и наличия колонки)
+      final idError = await checkUserId(userIdLogin);
+      if (idError != null) return idError;
 
       final response = await SupabaseService.client.auth.signUp(
         email: email,
