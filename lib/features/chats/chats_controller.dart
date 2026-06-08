@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:get/get.dart';
-import '../../core/services/local_storage_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/services/supabase_service.dart';
 import '../../data/models/user_model.dart';
 import '../auth/auth_controller.dart';
 import '../friends/friends_controller.dart';
@@ -21,22 +23,13 @@ class Message {
     required this.isMe,
   });
 
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    'senderId': senderId,
-    'text': text,
-    'imageBase64': imageBase64,
-    'time': time.toIso8601String(),
-    'isMe': isMe,
-  };
-
-  factory Message.fromJson(Map<String, dynamic> json) => Message(
-    id: json['id'] ?? '',
-    senderId: json['senderId'] ?? '',
+  factory Message.fromSupabase(Map<String, dynamic> json, String myId) => Message(
+    id: json['id']?.toString() ?? '',
+    senderId: json['sender_id']?.toString() ?? '',
     text: json['text'] ?? '',
-    imageBase64: json['imageBase64'],
-    time: DateTime.tryParse(json['time'] ?? '') ?? DateTime.now(),
-    isMe: json['isMe'] ?? false,
+    imageBase64: json['image_url'],
+    time: DateTime.tryParse(json['created_at']?.toString() ?? '') ?? DateTime.now(),
+    isMe: json['sender_id']?.toString() == myId,
   );
 }
 
@@ -47,51 +40,139 @@ class ChatsController extends GetxController {
 
   final personalChats = <String>[].obs;
 
+  // Кэш сообщений по chatId
+  final Map<String, List<Message>> _cache = {};
+  RealtimeChannel? _channel;
+
+  SupabaseClient get _client => SupabaseService.client;
+  String get _myId => Get.find<AuthController>().currentUser.value?.id ?? '';
+
+  // Единый chat_id для личного чата (одинаковый для обоих участников)
+  String personalChatId(String otherUserId) {
+    final ids = [_myId, otherUserId]..sort();
+    return 'personal_${ids.join('_')}';
+  }
+
   @override
   void onInit() {
     super.onInit();
     loadPersonalChats();
+    _subscribeRealtime();
+  }
+
+  @override
+  void onClose() {
+    _channel?.unsubscribe();
+    super.onClose();
   }
 
   void loadPersonalChats() {
-    personalChats.value = LocalStorageService.getFriends();
+    try {
+      final fc = Get.find<FriendsController>();
+      personalChats.value = fc.friends.map((u) => u.id).toList();
+    } catch (_) {
+      personalChats.value = [];
+    }
+  }
+
+  // ── Realtime подписка на новые сообщения ──────────────
+  void _subscribeRealtime() {
+    try {
+      _channel = _client
+          .channel('public:messages')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.insert,
+            schema: 'public',
+            table: 'messages',
+            callback: (payload) {
+              final row = payload.newRecord;
+              final chatId = row['chat_id']?.toString() ?? '';
+              if (chatId.isEmpty) return;
+              final msg = Message.fromSupabase(row, _myId);
+              _cache.putIfAbsent(chatId, () => []);
+              // Своё сообщение — заменяем temp на реальное
+              if (msg.isMe) {
+                _cache[chatId]!.removeWhere((m) => m.id.startsWith('temp_')
+                    && m.text == msg.text && m.imageBase64 == msg.imageBase64);
+              }
+              if (!_cache[chatId]!.any((m) => m.id == msg.id)) {
+                _cache[chatId]!.add(msg);
+                update([chatId]);
+              }
+            },
+          )
+          .subscribe();
+    } catch (_) {}
+  }
+
+  // ── Загрузка истории чата из Supabase ─────────────────
+  Future<void> loadMessages(String chatId) async {
+    try {
+      final data = await _client
+          .from('messages')
+          .select()
+          .eq('chat_id', chatId)
+          .order('created_at', ascending: true)
+          .limit(200);
+      _cache[chatId] = (data as List)
+          .map((e) => Message.fromSupabase(e, _myId))
+          .toList();
+      update([chatId]);
+    } catch (_) {
+      _cache[chatId] ??= [];
+    }
   }
 
   List<Message> getMessages(String chatId) {
-    final raw = LocalStorageService.getMessages(chatId);
-    return raw.map((e) => Message.fromJson(e)).toList();
+    // Если кэша нет — грузим асинхронно (вернётся пусто, потом update)
+    if (!_cache.containsKey(chatId)) {
+      loadMessages(chatId);
+      return [];
+    }
+    return _cache[chatId]!;
   }
 
+  // ── Отправка текста ───────────────────────────────────
   Future<void> sendMessage(String chatId, String text) async {
-    final auth = Get.find<AuthController>();
-    final msg = Message(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      senderId: auth.currentUser.value?.id ?? 'me',
-      text: text,
-      time: DateTime.now(),
-      isMe: true,
-    );
-    await LocalStorageService.addMessage(chatId, msg.toJson());
+    if (text.trim().isEmpty) return;
+    // Optimistic: показываем своё сообщение сразу
+    final tempMsg = Message(
+      id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
+      senderId: _myId, text: text, time: DateTime.now(), isMe: true);
+    _cache.putIfAbsent(chatId, () => []);
+    _cache[chatId]!.add(tempMsg);
     update([chatId]);
+    try {
+      await _client.from('messages').insert({
+        'chat_id': chatId,
+        'sender_id': _myId,
+        'text': text,
+      });
+    } catch (_) {}
   }
 
+  // ── Отправка фото (base64 в image_url) ────────────────
   Future<void> sendImageMessage(String chatId, String base64) async {
-    final auth = Get.find<AuthController>();
-    final msg = Message(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      senderId: auth.currentUser.value?.id ?? 'me',
-      text: '',
-      imageBase64: base64,
-      time: DateTime.now(),
-      isMe: true,
-    );
-    await LocalStorageService.addMessage(chatId, msg.toJson());
+    final tempMsg = Message(
+      id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
+      senderId: _myId, text: '', imageBase64: base64,
+      time: DateTime.now(), isMe: true);
+    _cache.putIfAbsent(chatId, () => []);
+    _cache[chatId]!.add(tempMsg);
     update([chatId]);
+    try {
+      await _client.from('messages').insert({
+        'chat_id': chatId,
+        'sender_id': _myId,
+        'text': '',
+        'image_url': base64,
+      });
+    } catch (_) {}
   }
 
+  // ── Имя отправителя ───────────────────────────────────
   String getSenderName(String senderId) {
-    final auth = Get.find<AuthController>();
-    if (senderId == auth.currentUser.value?.id || senderId == 'me') return 'chats_me_prefix'.tr.replaceAll(':', '').trim();
+    if (senderId == _myId) return 'chats_me_prefix'.tr.replaceAll(':', '').trim();
     try {
       final fc = Get.find<FriendsController>();
       final friend = fc.friends.firstWhereOrNull((u) => u.id == senderId);

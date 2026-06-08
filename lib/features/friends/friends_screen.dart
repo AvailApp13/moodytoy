@@ -275,8 +275,8 @@ class _FriendCard extends StatelessWidget {
               onPressed: () {
                 Get.back();
                 final chatsCtrl = Get.find<ChatsController>();
-                Get.to(() => _ChatPage(
-                  chatId: 'personal_${user.id}',
+                Get.to(() => ChatPage(
+                  chatId: chatsCtrl.personalChatId(user.id),
                   title: user.name,
                   color: user.mood?.color ?? AppColors.primary,
                   avatarEmoji: user.avatarEmoji,
@@ -291,139 +291,6 @@ class _FriendCard extends StatelessWidget {
     );
   }
 }
-
-// Inline import of ChatPage to avoid circular dependency
-class _ChatPage extends StatefulWidget {
-  final String chatId;
-  final String title;
-  final Color color;
-  final String? avatarEmoji;
-  const _ChatPage({required this.chatId, required this.title,
-      required this.color, this.avatarEmoji});
-
-  @override
-  State<_ChatPage> createState() => _ChatPageState();
-}
-
-class _ChatPageState extends State<_ChatPage> {
-  final _textCtrl = TextEditingController();
-  final _scrollCtrl = ScrollController();
-  late ChatsController _chatsCtrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _chatsCtrl = Get.find<ChatsController>();
-  }
-
-  @override
-  void dispose() { _textCtrl.dispose(); _scrollCtrl.dispose(); super.dispose(); }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        leading: const BackButton(color: Colors.white),
-        title: Text(widget.title,
-            style: const TextStyle(color: Colors.white, fontSize: 16)),
-        elevation: 0,
-      ),
-      body: Column(children: [
-        Expanded(
-          child: GetBuilder<ChatsController>(
-            id: widget.chatId,
-            builder: (ctrl) {
-              final messages = ctrl.getMessages(widget.chatId);
-              if (messages.isEmpty) {
-                return Center(child: Text('Напишите первым!',
-                    style: const TextStyle(color: AppColors.textHint)));
-              }
-              return ListView.builder(
-                controller: _scrollCtrl,
-                padding: const EdgeInsets.all(12),
-                itemCount: messages.length,
-                itemBuilder: (_, i) {
-                  final msg = messages[i];
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 3),
-                    child: Row(
-                      mainAxisAlignment: msg.isMe
-                          ? MainAxisAlignment.end
-                          : MainAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: msg.isMe
-                                ? widget.color
-                                : AppColors.surfaceVariant,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Text(msg.text,
-                              style: const TextStyle(
-                                  color: Colors.white, fontSize: 14)),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-        ),
-        Container(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
-          decoration: const BoxDecoration(
-            color: AppColors.surface,
-            border: Border(top: BorderSide(color: AppColors.border, width: 0.5)),
-          ),
-          child: Row(children: [
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceVariant,
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: TextField(
-                  controller: _textCtrl,
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
-                  decoration: InputDecoration(
-                    hintText: 'Написать...',
-                    hintStyle: TextStyle(color: AppColors.textHint, fontSize: 14),
-                    isDense: true, border: InputBorder.none,
-                  ),
-                  onSubmitted: (_) => _send(),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            GestureDetector(
-              onTap: _send,
-              child: Container(
-                width: 44, height: 44,
-                decoration: BoxDecoration(
-                    color: widget.color, shape: BoxShape.circle),
-                child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
-              ),
-            ),
-          ]),
-        ),
-      ]),
-    );
-  }
-
-  void _send() {
-    final text = _textCtrl.text.trim();
-    if (text.isEmpty) return;
-    _textCtrl.clear();
-    _chatsCtrl.sendMessage(widget.chatId, text);
-  }
-}
-
 
 // ── Поиск друга по User ID ────────────────────────────────
 class _FriendSearchBar extends StatefulWidget {

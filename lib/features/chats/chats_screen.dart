@@ -82,8 +82,9 @@ class _ChatsScreenState extends State<ChatsScreen>
               auth.updateMood(mood);
               Get.to(() => ChatPage(
                 chatId: mood.value,
-                title: '${mood.emoji} ${mood.label}',
+                title: mood.label,
                 color: mood.color,
+                avatarEmoji: mood.emoji,
               ));
             },
             child: AnimatedContainer(
@@ -172,11 +173,12 @@ class _ChatsScreenState extends State<ChatsScreen>
             final friendId = ctrl.personalChats[i];
             final friend = ctrl.getFriendUser(friendId);
             if (friend == null) return const SizedBox();
-            final messages = ctrl.getMessages('personal_$friendId');
+            final personalId = ctrl.personalChatId(friendId);
+            final messages = ctrl.getMessages(personalId);
             final lastMsg = messages.isNotEmpty ? messages.last : null;
             return GestureDetector(
               onTap: () => Get.to(() => ChatPage(
-                chatId: 'personal_$friendId',
+                chatId: personalId,
                 title: friend.name,
                 color: friend.mood?.color ?? AppColors.primary,
                 avatarEmoji: friend.avatarEmoji,

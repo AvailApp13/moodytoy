@@ -86,8 +86,9 @@ class ProfileScreen extends StatelessWidget {
               [if (user.city != null) user.city!, if (user.age != null) '${user.age} лет'].join(' · '),
               style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
             ),
-          if (user.userId != null) GestureDetector(
+          GestureDetector(
             onTap: () {
+              if (user.userId == null) return;
               Clipboard.setData(ClipboardData(text: user.userId!));
               Get.snackbar('', 'auth_id_copied'.tr,
                   backgroundColor: AppColors.surface, colorText: Colors.white,
@@ -98,11 +99,13 @@ class ProfileScreen extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Text('ID: ${user.userId}',
+                Text('${'profile_your_id'.tr}: ${user.userId ?? '—'}',
                     style: const TextStyle(color: AppColors.primary, fontSize: 13,
                         fontWeight: FontWeight.w500)),
-                const SizedBox(width: 6),
-                const Icon(Icons.copy, size: 14, color: AppColors.primary),
+                if (user.userId != null) ...[
+                  const SizedBox(width: 6),
+                  const Icon(Icons.copy, size: 14, color: AppColors.primary),
+                ],
               ]),
             ),
           ),
