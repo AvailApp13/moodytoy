@@ -54,31 +54,31 @@ class AuthController extends GetxController {
     required String userIdLogin,
   }) async {
     try {
-      // Проверка уникальности User ID (и наличия колонки)
+      // Шаг 1: проверка уникальности User ID (и наличия колонки)
       final idError = await checkUserId(userIdLogin);
       if (idError != null) return idError;
 
+      // Шаг 2: создаём auth-пользователя
       final response = await SupabaseService.client.auth.signUp(
         email: email,
         password: password,
         data: {'name': name},
       );
 
-      if (response.user == null) return 'auth_error_general'.tr;
-
+      if (response.user == null) return '1: auth.signUp вернул null';
       final authId = response.user!.id;
 
-      // Если сессии нет — входим (нужна сессия чтобы прошёл RLS на INSERT)
-      if (response.session == null) {
+      // Шаг 3: устанавливаем сессию (нужна для RLS)
+      if (SupabaseService.client.auth.currentSession == null) {
         try {
           await SupabaseService.client.auth.signInWithPassword(
             email: email, password: password);
-        } catch (_) {
-          return 'Подтвердите email или отключите подтверждение в Supabase';
+        } catch (e) {
+          return '2: нет сессии (вкл. Confirm email?): $e';
         }
       }
 
-      // Теперь сессия есть — upsert профиля С user_id (insert или update)
+      // Шаг 4: сохраняем профиль с user_id
       try {
         await SupabaseService.client.from('users').upsert({
           'id': authId,
@@ -90,17 +90,24 @@ class AuthController extends GetxController {
           'location_enabled': true,
         });
       } catch (e) {
-        return 'Не удалось сохранить профиль: ${e.toString()}';
+        return '3: upsert не прошёл: $e';
       }
 
-      await _loadUserProfile(authId);
+      // Шаг 5: проверяем что строка реально создалась
+      final check = await SupabaseService.client
+          .from('users').select('user_id').eq('id', authId).maybeSingle();
+      if (check == null) {
+        return '4: строка не создалась (RLS блокирует INSERT?)';
+      }
 
+      // Шаг 6: загружаем профиль
+      await _loadUserProfile(authId);
       if (currentUser.value == null) {
-        return 'Не удалось загрузить профиль. Попробуйте войти ещё раз.';
+        return '5: профиль не загрузился';
       }
       return null;
     } on AuthException catch (e) {
-      return e.message; // показываем точное сообщение от Supabase
+      return e.message;
     } catch (e) {
       return 'Ошибка: ${e.toString()}';
     }

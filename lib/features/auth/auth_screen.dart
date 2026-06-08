@@ -156,7 +156,10 @@ class _AuthScreenState extends State<AuthScreen> {
                   style: const TextStyle(color: AppColors.primary, fontSize: 14),
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 16),
+              Text('v1.0.3 (build 4)',
+                  style: TextStyle(color: AppColors.textHint.withOpacity(0.4), fontSize: 11)),
+              const SizedBox(height: 24),
             ],
           ),
         ),
@@ -295,7 +298,7 @@ class _AuthScreenState extends State<AuthScreen> {
         snackPosition: SnackPosition.TOP,
         backgroundColor: AppColors.error,
         colorText: Colors.white,
-        duration: const Duration(seconds: 4),
+        duration: const Duration(seconds: 8),
         margin: const EdgeInsets.all(16));
   }
 }
