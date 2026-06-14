@@ -5,6 +5,7 @@ import '../../core/services/supabase_service.dart';
 import '../../data/models/user_model.dart';
 import '../auth/auth_controller.dart';
 import '../friends/friends_controller.dart';
+import '../../data/repositories/supabase_repository.dart';
 
 class Message {
   final String id;
@@ -42,6 +43,8 @@ class ChatsController extends GetxController {
 
   // Кэш сообщений по chatId
   final Map<String, List<Message>> _cache = {};
+  // Кэш профилей отправителей (для имён незнакомцев в общих чатах)
+  final Map<String, UserModel> _profileCache = {};
   RealtimeChannel? _channel;
 
   SupabaseClient get _client => SupabaseService.client;
@@ -98,6 +101,15 @@ class ChatsController extends GetxController {
               if (!_cache[chatId]!.any((m) => m.id == msg.id)) {
                 _cache[chatId]!.add(msg);
                 update([chatId]);
+                // Подгрузить имя отправителя если незнакомец
+                if (!msg.isMe && !_profileCache.containsKey(msg.senderId)) {
+                  SupabaseRepository.getUserById(msg.senderId).then((u) {
+                    if (u != null) {
+                      _profileCache[u.id] = u;
+                      update([chatId]);
+                    }
+                  });
+                }
               }
             },
           )
@@ -118,9 +130,26 @@ class ChatsController extends GetxController {
           .map((e) => Message.fromSupabase(e, _myId))
           .toList();
       update([chatId]);
+      _loadSenderProfiles(chatId); // подгрузить имена отправителей
     } catch (_) {
       _cache[chatId] ??= [];
     }
+  }
+
+  // Подгружаем профили всех отправителей (для имён незнакомцев в общих чатах)
+  Future<void> _loadSenderProfiles(String chatId) async {
+    final msgs = _cache[chatId] ?? [];
+    final ids = msgs
+        .map((m) => m.senderId)
+        .where((id) => id != _myId && id != 'me' && !_profileCache.containsKey(id))
+        .toSet()
+        .toList();
+    if (ids.isEmpty) return;
+    final users = await SupabaseRepository.getUsersByIds(ids);
+    for (final u in users) {
+      _profileCache[u.id] = u;
+    }
+    if (users.isNotEmpty) update([chatId]);
   }
 
   List<Message> getMessages(String chatId) {
@@ -173,21 +202,23 @@ class ChatsController extends GetxController {
   // ── Имя отправителя ───────────────────────────────────
   String getSenderName(String senderId) {
     if (senderId == _myId) return 'chats_me_prefix'.tr.replaceAll(':', '').trim();
+    // Сначала друзья, потом кэш профилей (незнакомцы в общих чатах)
     try {
       final fc = Get.find<FriendsController>();
       final friend = fc.friends.firstWhereOrNull((u) => u.id == senderId);
-      return friend?.name ?? '...';
-    } catch (_) {
-      return '...';
-    }
+      if (friend != null) return friend.name;
+    } catch (_) {}
+    final cached = _profileCache[senderId];
+    if (cached != null) return cached.name;
+    return '...';
   }
 
   UserModel? getFriendUser(String friendId) {
     try {
       final fc = Get.find<FriendsController>();
-      return fc.friends.firstWhereOrNull((u) => u.id == friendId);
-    } catch (_) {
-      return null;
-    }
+      final friend = fc.friends.firstWhereOrNull((u) => u.id == friendId);
+      if (friend != null) return friend;
+    } catch (_) {}
+    return _profileCache[friendId];
   }
 }

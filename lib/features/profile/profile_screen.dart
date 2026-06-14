@@ -516,9 +516,18 @@ class _SettingsScreenState extends State<_SettingsScreen> {
               Get.offAll(() => const AuthScreen());
             },
           ),
+          const SizedBox(height: 8),
+          // Удаление аккаунта (критично для соцсети + требование App Store)
+          _settingItem(
+            title: 'settings_delete_account'.tr,
+            subtitle: 'settings_delete_sub'.tr,
+            icon: Icons.delete_forever_outlined,
+            danger: true,
+            onTap: () => _confirmDeleteAccount(),
+          ),
           const SizedBox(height: 16),
           Center(
-            child: Text('v1.0.12 (build 13)',
+            child: Text('v1.0.13 (build 14)',
                 style: TextStyle(color: AppColors.textHint.withOpacity(0.5), fontSize: 11)),
           ),
         ],
@@ -538,7 +547,9 @@ class _SettingsScreenState extends State<_SettingsScreen> {
     required String subtitle,
     required IconData icon,
     required VoidCallback onTap,
+    bool danger = false,
   }) {
+    final color = danger ? AppColors.error : Colors.white;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -547,24 +558,71 @@ class _SettingsScreenState extends State<_SettingsScreen> {
         decoration: BoxDecoration(
           color: AppColors.card,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.border, width: 0.5),
+          border: Border.all(
+              color: danger ? AppColors.error.withOpacity(0.4) : AppColors.border,
+              width: 0.5),
         ),
         child: Row(children: [
-          Icon(icon, size: 20, color: AppColors.textSecondary),
+          Icon(icon, size: 20,
+              color: danger ? AppColors.error : AppColors.textSecondary),
           const SizedBox(width: 12),
           Expanded(child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: const TextStyle(
-                  color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500)),
-              Text(subtitle, style: const TextStyle(
-                  color: AppColors.textSecondary, fontSize: 12)),
+              Text(title, style: TextStyle(
+                  color: color, fontSize: 15, fontWeight: FontWeight.w500)),
+              if (subtitle.isNotEmpty)
+                Text(subtitle, style: const TextStyle(
+                    color: AppColors.textSecondary, fontSize: 12)),
             ],
           )),
-          const Icon(Icons.chevron_right, color: AppColors.textHint, size: 20),
+          Icon(Icons.chevron_right,
+              color: danger ? AppColors.error.withOpacity(0.6) : AppColors.textHint,
+              size: 20),
         ]),
       ),
     );
+  }
+
+  void _confirmDeleteAccount() {
+    Get.dialog(AlertDialog(
+      backgroundColor: AppColors.surface,
+      title: Text('settings_delete_account'.tr,
+          style: const TextStyle(color: Colors.white)),
+      content: Text('settings_delete_confirm'.tr,
+          style: const TextStyle(color: AppColors.textSecondary)),
+      actions: [
+        TextButton(
+          onPressed: () => Get.back(),
+          child: Text('dialog_cancel'.tr,
+              style: const TextStyle(color: AppColors.textSecondary)),
+        ),
+        TextButton(
+          onPressed: () async {
+            Get.back(); // закрыть диалог
+            Get.dialog(
+              const Center(child: CircularProgressIndicator()),
+              barrierDismissible: false,
+            );
+            final error = await _auth.deleteAccount();
+            Get.back(); // закрыть лоадер
+            if (error == null) {
+              Get.offAll(() => const AuthScreen());
+              Get.snackbar('', 'settings_delete_done'.tr,
+                  backgroundColor: AppColors.surface, colorText: Colors.white,
+                  snackPosition: SnackPosition.TOP);
+            } else {
+              Get.snackbar('settings_delete_account'.tr, error,
+                  backgroundColor: AppColors.error, colorText: Colors.white,
+                  snackPosition: SnackPosition.TOP,
+                  duration: const Duration(seconds: 6));
+            }
+          },
+          child: Text('settings_delete_yes'.tr,
+              style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.w600)),
+        ),
+      ],
+    ));
   }
 
   void _editName(BuildContext context) {

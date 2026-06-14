@@ -167,6 +167,29 @@ class AuthController extends GetxController {
     await LocalStorageService.prefs.remove('current_user');
   }
 
+  // Удаление аккаунта: чистим данные пользователя и выходим.
+  // Возвращает null при успехе, иначе текст ошибки.
+  Future<String?> deleteAccount() async {
+    final user = currentUser.value;
+    if (user == null) return 'Нет активного пользователя';
+    final id = user.id;
+    try {
+      final db = SupabaseService.client;
+      // Удаляем связанные данные
+      await db.from('messages').delete().eq('sender_id', id);
+      await db.from('friendships').delete().or(
+          'requester_id.eq.$id,receiver_id.eq.$id');
+      await db.from('user_toys').delete().eq('user_id', id);
+      // Удаляем профиль
+      await db.from('users').delete().eq('id', id);
+      // Выходим из сессии
+      await signOut();
+      return null;
+    } catch (e) {
+      return 'Ошибка удаления: $e';
+    }
+  }
+
   // ── Загрузка профиля из Supabase ──────────────────────
   Future<void> _loadUserProfile(String userId) async {
     try {

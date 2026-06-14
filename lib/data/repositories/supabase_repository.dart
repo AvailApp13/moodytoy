@@ -53,12 +53,13 @@ class SupabaseRepository {
   // ── Получение всех пользователей (для списка людей) ───
   static Future<List<UserModel>> getNearbyUsers(String currentUserId) async {
     try {
+      // Показываем ВСЕХ зарегистрированных (кроме себя), онлайн — сверху
       final result = await _client
           .from('users')
           .select()
           .neq('id', currentUserId)
           .order('last_seen_at', ascending: false)
-          .limit(20);
+          .limit(1000);
 
       return (result as List).map((e) => UserModel.fromJson(e)).toList();
     } catch (_) {
@@ -242,6 +243,17 @@ class SupabaseRepository {
       return UserModel.fromJson(data);
     } catch (_) {
       return null;
+    }
+  }
+
+  // Пачка профилей по списку ID (для имён отправителей в общих чатах)
+  static Future<List<UserModel>> getUsersByIds(List<String> ids) async {
+    if (ids.isEmpty) return [];
+    try {
+      final data = await _client.from('users').select().inFilter('id', ids);
+      return (data as List).map((e) => UserModel.fromJson(e)).toList();
+    } catch (_) {
+      return [];
     }
   }
 
