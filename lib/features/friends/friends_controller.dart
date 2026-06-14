@@ -14,6 +14,18 @@ class FriendsController extends GetxController {
   final outgoingRequestIds = <String>[].obs;
   final _incomingRequestIds = <String, String>{}; // friendshipId → requesterId
 
+  // Фильтр поиска среди существующих друзей
+  String friendsFilter = '';
+  void setFriendsFilter(String q) {
+    friendsFilter = q;
+    update();
+  }
+  List<UserModel> get filteredFriends {
+    final q = friendsFilter.trim().toLowerCase();
+    if (q.isEmpty) return friends.toList();
+    return friends.where((u) => u.name.toLowerCase().contains(q)).toList();
+  }
+
   RealtimeChannel? _channel;
   Timer? _pollTimer;
 

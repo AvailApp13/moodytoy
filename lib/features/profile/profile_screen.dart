@@ -527,7 +527,7 @@ class _SettingsScreenState extends State<_SettingsScreen> {
           ),
           const SizedBox(height: 16),
           Center(
-            child: Text('v1.0.14 (build 15)',
+            child: Text('v1.0.15 (build 16)',
                 style: TextStyle(color: AppColors.textHint.withOpacity(0.5), fontSize: 11)),
           ),
         ],

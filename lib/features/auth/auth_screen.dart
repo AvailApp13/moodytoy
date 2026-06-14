@@ -190,7 +190,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              Text('v1.0.14 (build 15)',
+              Text('v1.0.15 (build 16)',
                   style: TextStyle(color: AppColors.textHint.withOpacity(0.4), fontSize: 11)),
               const SizedBox(height: 24),
             ],

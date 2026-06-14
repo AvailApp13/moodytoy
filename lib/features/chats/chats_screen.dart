@@ -1,15 +1,18 @@
 import '../../shared/widgets/translated_text.dart';
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/constants/app_colors.dart';
 import '../../data/models/user_model.dart';
 import '../auth/auth_controller.dart';
 import 'chats_controller.dart';
 import '../../data/repositories/supabase_repository.dart';
 import '../../core/services/translation_service.dart';
+import '../../core/services/supabase_service.dart';
 import '../../shared/widgets/user_profile_sheet.dart';
 
 class ChatsScreen extends StatefulWidget {
@@ -351,6 +354,13 @@ class _ChatPageState extends State<ChatPage> {
   final _picker = ImagePicker();
   late ChatsController _ctrl;
 
+  RealtimeChannel? _typingChannel;
+  bool _otherTyping = false;
+  Timer? _typingClearTimer;
+  DateTime _lastTypingSent = DateTime.fromMillisecondsSinceEpoch(0);
+
+  String get _myId => Get.find<AuthController>().currentUser.value?.id ?? '';
+
   @override
   void initState() {
     super.initState();
@@ -364,10 +374,48 @@ class _ChatPageState extends State<ChatPage> {
     if (!widget.chatId.startsWith('personal_')) {
       _ctrl.refreshMoodOnline();
     }
+    _setupTyping();
+  }
+
+  // Realtime broadcast для индикатора "печатает..."
+  void _setupTyping() {
+    try {
+      _typingChannel = SupabaseService.client
+          .channel('typing_${widget.chatId}')
+          .onBroadcast(
+            event: 'typing',
+            callback: (payload) {
+              final from = payload['userId']?.toString();
+              if (from == null || from == _myId) return;
+              if (!mounted) return;
+              setState(() => _otherTyping = true);
+              _typingClearTimer?.cancel();
+              _typingClearTimer = Timer(const Duration(seconds: 3), () {
+                if (mounted) setState(() => _otherTyping = false);
+              });
+            },
+          )
+          .subscribe();
+    } catch (_) {}
+  }
+
+  void _onTypingChanged(String text) {
+    // Шлём событие не чаще раза в 2 сек
+    final now = DateTime.now();
+    if (now.difference(_lastTypingSent).inMilliseconds < 2000) return;
+    _lastTypingSent = now;
+    try {
+      _typingChannel?.sendBroadcastMessage(
+        event: 'typing',
+        payload: {'userId': _myId},
+      );
+    } catch (_) {}
   }
 
   @override
   void dispose() {
+    _typingClearTimer?.cancel();
+    _typingChannel?.unsubscribe();
     _textCtrl.dispose();
     _scrollCtrl.dispose();
     super.dispose();
@@ -409,6 +457,10 @@ class _ChatPageState extends State<ChatPage> {
                           color: AppColors.success, fontSize: 11),
                     );
                   }),
+                // Для личных чатов — "печатает..."
+                if (widget.chatId.startsWith('personal_') && _otherTyping)
+                  Text('chats_typing'.tr,
+                      style: TextStyle(color: AppColors.success, fontSize: 11)),
               ],
             ),
           ),
@@ -485,6 +537,8 @@ class _ChatPageState extends State<ChatPage> {
                 isDense: true, border: InputBorder.none,
               ),
               maxLines: null,
+              onChanged: widget.chatId.startsWith('personal_')
+                  ? _onTypingChanged : null,
               onSubmitted: (_) => _send(),
             ),
           ),

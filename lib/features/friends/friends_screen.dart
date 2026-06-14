@@ -38,8 +38,17 @@ class FriendsScreen extends StatelessWidget {
                     _sectionLabel('my_friends'.tr),
                     if (c.friends.isEmpty)
                       _buildEmpty(context)
-                    else
-                      ...c.friends.map((u) => _FriendCard(user: u)),
+                    else ...[
+                      // Поиск среди друзей (если их больше 3)
+                      if (c.friends.length > 3) _FriendsFilterField(ctrl: c),
+                      ...c.filteredFriends.map((u) => _FriendCard(user: u)),
+                      if (c.filteredFriends.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Center(child: Text('chats_search_empty'.tr,
+                              style: TextStyle(color: AppColors.textHint))),
+                        ),
+                    ],
                   ],
                 ),
               ),
@@ -113,6 +122,49 @@ class FriendsScreen extends StatelessWidget {
       ]),
     ),
   );
+}
+
+// ── Поиск среди существующих друзей ───────────────────────
+class _FriendsFilterField extends StatefulWidget {
+  final FriendsController ctrl;
+  const _FriendsFilterField({required this.ctrl});
+  @override
+  State<_FriendsFilterField> createState() => _FriendsFilterFieldState();
+}
+
+class _FriendsFilterFieldState extends State<_FriendsFilterField> {
+  late final TextEditingController _c =
+      TextEditingController(text: widget.ctrl.friendsFilter);
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: TextField(
+        controller: _c,
+        onChanged: widget.ctrl.setFriendsFilter,
+        style: const TextStyle(color: Colors.white, fontSize: 14),
+        decoration: InputDecoration(
+          hintText: 'friends_filter_hint'.tr,
+          hintStyle: const TextStyle(color: AppColors.textHint),
+          prefixIcon: const Icon(Icons.search, color: AppColors.textHint, size: 20),
+          filled: true,
+          fillColor: AppColors.card,
+          isDense: true,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 // ── Карточка входящего запроса ────────────────────────────
