@@ -107,6 +107,16 @@ class TranslationService {
   }
 
   // ── MyMemory: бесплатный переводчик без ключа ──────────
+  // MyMemory ждёт коды RFC3066: ru, en, zh-CN
+  static String _mmCode(String lang) {
+    switch (lang) {
+      case 'zh': return 'zh-CN';
+      case 'en': return 'en-GB';
+      case 'ru': return 'ru-RU';
+      default:   return lang;
+    }
+  }
+
   static Future<String?> _translateMyMemory(
       String text, String source, String target) async {
     try {
@@ -115,7 +125,7 @@ class TranslationService {
         'https://api.mymemory.translated.net/get',
         queryParameters: {
           'q': text,
-          'langpair': '$source|$target',
+          'langpair': '${_mmCode(source)}|${_mmCode(target)}',
         },
         options: Options(
           sendTimeout: const Duration(seconds: 10),
