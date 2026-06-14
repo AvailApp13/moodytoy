@@ -57,8 +57,12 @@ class TranslationService {
 
   static String get _currentLang => LanguageService.getSavedLanguage() ?? 'ru';
 
+  // Последняя ошибка перевода (для диагностики в UI)
+  static String? lastError;
+
   // ── Перевод сообщения в чате по запросу (на язык юзера, включая RU) ──
   static Future<String?> translateMessage(String text) async {
+    lastError = null;
     if (text.trim().isEmpty) return null;
     final lang = _currentLang;
     final cacheKey = 'msg_${text.hashCode}_$lang';
@@ -84,7 +88,8 @@ class TranslationService {
             'Content-Type': 'application/json',
           },
           sendTimeout: const Duration(seconds: 10),
-          receiveTimeout: const Duration(seconds: 15),
+          receiveTimeout: const Duration(seconds: 20),
+          validateStatus: (_) => true, // не кидать исключение на 4xx/5xx
         ),
         data: {
           'model': 'deepseek-chat',
@@ -101,15 +106,29 @@ class TranslationService {
           ],
         },
       );
+
+      // Диагностика статуса
+      if (response.statusCode != 200) {
+        lastError = 'HTTP ${response.statusCode}: ${response.data.toString()}';
+        return null;
+      }
+
       final result =
-          response.data['choices'][0]['message']['content']?.toString().trim();
+          response.data['choices']?[0]?['message']?['content']?.toString().trim();
       if (result != null && result.isNotEmpty) {
         _memCache[cacheKey] = result;
         await prefs.setString('$_cachePrefix$cacheKey', result);
         return result;
       }
-    } catch (_) {}
-    return null;
+      lastError = 'Пустой ответ: ${response.data.toString()}';
+      return null;
+    } on DioException catch (e) {
+      lastError = 'Сеть: ${e.type} ${e.message ?? ''}'.trim();
+      return null;
+    } catch (e) {
+      lastError = 'Ошибка: $e';
+      return null;
+    }
   }
 
   static Future<String?> _translateViaApi(String text, String targetLang) async {

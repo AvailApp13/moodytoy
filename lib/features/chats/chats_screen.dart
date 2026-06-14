@@ -464,10 +464,39 @@ class _MessageBubbleState extends State<_MessageBubble> {
     final result =
         await TranslationService.translateMessage(widget.message.text);
     if (!mounted) return;
+
+    if (result == null) {
+      // Показываем реальную причину для диагностики
+      setState(() => _translating = false);
+      Get.snackbar(
+        'Перевод не удался',
+        TranslationService.lastError ?? 'Неизвестная ошибка',
+        backgroundColor: AppColors.error,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.TOP,
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 8),
+      );
+      return;
+    }
+
     setState(() {
-      _translated = result ?? widget.message.text;
+      _translated = result;
       _translating = false;
     });
+
+    // Если перевод совпал с оригиналом — подсказка (тот же язык)
+    if (result.trim() == widget.message.text.trim()) {
+      Get.snackbar(
+        '',
+        'chats_translate_same'.tr,
+        backgroundColor: AppColors.surface,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.TOP,
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 3),
+      );
+    }
   }
 
   @override
