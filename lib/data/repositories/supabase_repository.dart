@@ -233,6 +233,18 @@ class SupabaseRepository {
   }
 
   // ── Поиск пользователя по User ID (логину) ────────────
+  // Загрузка профиля по внутреннему UUID (для тапа в чате)
+  static Future<UserModel?> getUserById(String id) async {
+    try {
+      final data = await _client
+          .from('users').select().eq('id', id).maybeSingle();
+      if (data == null) return null;
+      return UserModel.fromJson(data);
+    } catch (_) {
+      return null;
+    }
+  }
+
   static Future<UserModel?> findUserByUserId(String userIdLogin) async {
     try {
       final data = await _client

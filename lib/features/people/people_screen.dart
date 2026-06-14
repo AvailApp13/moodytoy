@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../core/constants/app_colors.dart';
 import '../../data/models/user_model.dart';
 import '../../shared/widgets/translated_text.dart';
+import '../../shared/widgets/user_profile_sheet.dart';
 import '../friends/friends_controller.dart';
 import '../auth/auth_controller.dart';
 import 'people_controller.dart';
@@ -213,13 +214,7 @@ class _PeopleScreenState extends State<PeopleScreen> {
   }
 
   void _showUserCard(UserModel user) {
-    Get.bottomSheet(
-      _UserBottomSheet(user: user, friends: _friends, ctrl: _ctrl),
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      isScrollControlled: true,
-    );
+    showUserProfileSheet(user);
   }
 }
 
@@ -245,16 +240,29 @@ class _PeopleCard extends StatelessWidget {
           border: Border.all(color: AppColors.border, width: 0.5),
         ),
         child: Row(children: [
-          Container(
-            width: 52, height: 52,
-            decoration: BoxDecoration(
-              color: user.mood?.color.withOpacity(0.2) ?? AppColors.surfaceVariant,
-              shape: BoxShape.circle,
-              border: Border.all(color: user.mood?.color ?? AppColors.border, width: 2),
+          Stack(children: [
+            Container(
+              width: 52, height: 52,
+              decoration: BoxDecoration(
+                color: user.mood?.color.withOpacity(0.2) ?? AppColors.surfaceVariant,
+                shape: BoxShape.circle,
+                border: Border.all(color: user.mood?.color ?? AppColors.border, width: 2),
+              ),
+              child: Center(child: Text(user.avatarEmoji ?? '👤',
+                  style: const TextStyle(fontSize: 24))),
             ),
-            child: Center(child: Text(user.avatarEmoji ?? '👤',
-                style: const TextStyle(fontSize: 24))),
-          ),
+            if (user.isOnline) Positioned(
+              right: 0, bottom: 0,
+              child: Container(
+                width: 15, height: 15,
+                decoration: BoxDecoration(
+                  color: AppColors.success,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.card, width: 2),
+                ),
+              ),
+            ),
+          ]),
           const SizedBox(width: 12),
           Expanded(child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

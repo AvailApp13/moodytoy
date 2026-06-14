@@ -8,6 +8,9 @@ import '../../core/constants/app_colors.dart';
 import '../../data/models/user_model.dart';
 import '../auth/auth_controller.dart';
 import 'chats_controller.dart';
+import '../../data/repositories/supabase_repository.dart';
+import '../../core/services/translation_service.dart';
+import '../../shared/widgets/user_profile_sheet.dart';
 
 class ChatsScreen extends StatefulWidget {
   const ChatsScreen({super.key});
@@ -426,7 +429,7 @@ class _ChatPageState extends State<ChatPage> {
 }
 
 // ── Пузырь сообщения ──────────────────────────────────────
-class _MessageBubble extends StatelessWidget {
+class _MessageBubble extends StatefulWidget {
   final Message message;
   final ChatsController ctrl;
   final Color chatColor;
@@ -438,8 +441,43 @@ class _MessageBubble extends StatelessWidget {
   });
 
   @override
+  State<_MessageBubble> createState() => _MessageBubbleState();
+}
+
+class _MessageBubbleState extends State<_MessageBubble> {
+  String? _translated;
+  bool _translating = false;
+
+  Future<void> _openProfile() async {
+    final senderId = widget.message.senderId;
+    final myId = Get.find<AuthController>().currentUser.value?.id ?? '';
+    if (senderId == myId || senderId == 'me') return;
+    // Сначала ищем среди друзей, иначе грузим из Supabase
+    UserModel? user = widget.ctrl.getFriendUser(senderId);
+    user ??= await SupabaseRepository.getUserById(senderId);
+    if (user != null) showUserProfileSheet(user);
+  }
+
+  Future<void> _translate() async {
+    if (_translating) return;
+    setState(() => _translating = true);
+    final result =
+        await TranslationService.translateMessage(widget.message.text);
+    if (!mounted) return;
+    setState(() {
+      _translated = result ?? widget.message.text;
+      _translating = false;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final message = widget.message;
+    final ctrl = widget.ctrl;
+    final chatColor = widget.chatColor;
     final isMe = message.isMe;
+    final senderName = ctrl.getSenderName(message.senderId);
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
@@ -448,16 +486,18 @@ class _MessageBubble extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isMe) ...[
-            Container(
-              width: 28, height: 28,
-              margin: const EdgeInsets.only(right: 6, bottom: 2),
-              decoration: BoxDecoration(
-                color: chatColor.withOpacity(0.2), shape: BoxShape.circle),
-              child: Center(child: Text(
-                ctrl.getSenderName(message.senderId).isNotEmpty
-                    ? ctrl.getSenderName(message.senderId)[0] : '?',
-                style: TextStyle(color: chatColor, fontSize: 12),
-              )),
+            GestureDetector(
+              onTap: _openProfile,
+              child: Container(
+                width: 28, height: 28,
+                margin: const EdgeInsets.only(right: 6, bottom: 2),
+                decoration: BoxDecoration(
+                  color: chatColor.withOpacity(0.2), shape: BoxShape.circle),
+                child: Center(child: Text(
+                  senderName.isNotEmpty ? senderName[0] : '?',
+                  style: TextStyle(color: chatColor, fontSize: 12),
+                )),
+              ),
             ),
           ],
           Flexible(
@@ -466,10 +506,13 @@ class _MessageBubble extends StatelessWidget {
                   isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
               children: [
                 if (!isMe)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 4, bottom: 2),
-                    child: Text(ctrl.getSenderName(message.senderId),
-                        style: TextStyle(fontSize: 11, color: chatColor)),
+                  GestureDetector(
+                    onTap: _openProfile,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 4, bottom: 2),
+                      child: Text(senderName,
+                          style: TextStyle(fontSize: 11, color: chatColor)),
+                    ),
                   ),
                 Container(
                   constraints: BoxConstraints(
@@ -490,16 +533,62 @@ class _MessageBubble extends StatelessWidget {
                       : Padding(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 8),
-                          child: Text(message.text,
-                              style: const TextStyle(
-                                  color: Colors.white, fontSize: 14)),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(message.text,
+                                  style: const TextStyle(
+                                      color: Colors.white, fontSize: 14)),
+                              if (_translated != null) ...[
+                                const SizedBox(height: 6),
+                                Container(
+                                  margin: const EdgeInsets.only(top: 2),
+                                  padding: const EdgeInsets.only(top: 6),
+                                  decoration: const BoxDecoration(
+                                    border: Border(top: BorderSide(
+                                        color: Colors.white24, width: 0.5)),
+                                  ),
+                                  child: Text(_translated!,
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                          fontStyle: FontStyle.italic)),
+                                ),
+                              ],
+                            ],
+                          ),
                         ),
                 ),
+                // Время + кнопка перевода
                 Padding(
                   padding: const EdgeInsets.only(top: 2, left: 4, right: 4),
-                  child: Text(
-                    '${message.time.hour.toString().padLeft(2, '0')}:${message.time.minute.toString().padLeft(2, '0')}',
-                    style: const TextStyle(fontSize: 10, color: AppColors.textHint),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '${message.time.hour.toString().padLeft(2, '0')}:${message.time.minute.toString().padLeft(2, '0')}',
+                        style: const TextStyle(fontSize: 10, color: AppColors.textHint),
+                      ),
+                      // Перевод — только для текстовых сообщений и если ещё не переведено
+                      if (message.imageBase64 == null &&
+                          message.text.trim().isNotEmpty &&
+                          _translated == null) ...[
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: _translate,
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            Icon(Icons.translate,
+                                size: 11, color: chatColor.withOpacity(0.8)),
+                            const SizedBox(width: 3),
+                            Text(
+                              _translating ? 'chats_translating'.tr : 'chats_translate'.tr,
+                              style: TextStyle(fontSize: 10,
+                                  color: chatColor.withOpacity(0.8)),
+                            ),
+                          ]),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ],

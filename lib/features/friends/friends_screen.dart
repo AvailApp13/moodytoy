@@ -1,4 +1,5 @@
 import '../../shared/widgets/translated_text.dart';
+import '../../shared/widgets/user_profile_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/constants/app_colors.dart';
@@ -192,7 +193,7 @@ class _FriendCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => _showFriendSheet(context),
+      onTap: () => showUserProfileSheet(user),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
@@ -243,130 +244,6 @@ class _FriendCard extends StatelessWidget {
     );
   }
 
-  void _showFriendSheet(BuildContext context) {
-    Get.bottomSheet(
-      Container(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Container(width: 40, height: 4,
-            decoration: BoxDecoration(color: AppColors.border,
-                borderRadius: BorderRadius.circular(2))),
-          const SizedBox(height: 20),
-          // Аватар с настроением + онлайн
-          Stack(children: [
-            Container(
-              width: 88, height: 88,
-              decoration: BoxDecoration(
-                color: user.mood?.color.withOpacity(0.2) ?? AppColors.surfaceVariant,
-                shape: BoxShape.circle,
-                border: Border.all(
-                    color: user.mood?.color ?? AppColors.border, width: 3),
-              ),
-              child: Center(child: Text(user.avatarEmoji ?? '👤',
-                  style: const TextStyle(fontSize: 44))),
-            ),
-            if (user.isOnline) Positioned(
-              right: 4, bottom: 4,
-              child: Container(
-                width: 18, height: 18,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF4CAF50),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.surface, width: 3),
-                ),
-              ),
-            ),
-          ]),
-          const SizedBox(height: 12),
-          // Имя + возраст
-          Text(
-            user.age != null ? '${user.name}, ${user.age}' : user.name,
-            style: const TextStyle(color: Colors.white,
-                fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 4),
-          // Онлайн/офлайн
-          Text(
-            user.isOnline ? 'status_online'.tr : 'status_offline'.tr,
-            style: TextStyle(
-                color: user.isOnline ? const Color(0xFF4CAF50) : AppColors.textHint,
-                fontSize: 13),
-          ),
-          const SizedBox(height: 16),
-          // Настроение в цвете
-          if (user.mood != null) Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: user.mood!.color.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: user.mood!.color, width: 1),
-            ),
-            child: Text('${user.mood!.emoji} ${user.mood!.label}',
-                style: TextStyle(color: user.mood!.color, fontSize: 14,
-                    fontWeight: FontWeight.w600)),
-          ),
-          const SizedBox(height: 16),
-          // Карточка с инфо: город, о себе
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.card,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _sheetRow(Icons.location_on_outlined, 'profile_city'.tr,
-                  user.city?.isNotEmpty == true ? user.city! : 'profile_not_set'.tr),
-              const SizedBox(height: 12),
-              _sheetRow(Icons.cake_outlined, 'profile_age'.tr,
-                  user.age != null ? '${user.age}' : 'profile_not_set'.tr),
-              if (user.bio?.isNotEmpty == true) ...[
-                const SizedBox(height: 12),
-                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Icon(Icons.chat_bubble_outline, size: 18, color: AppColors.textHint),
-                  const SizedBox(width: 10),
-                  Expanded(child: TranslatedText(user.bio,
-                      style: const TextStyle(color: Colors.white, fontSize: 14))),
-                ]),
-              ],
-            ]),
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                Get.back();
-                final chatsCtrl = Get.find<ChatsController>();
-                Get.to(() => ChatPage(
-                  chatId: chatsCtrl.personalChatId(user.id),
-                  title: user.name,
-                  color: user.mood?.color ?? AppColors.primary,
-                  avatarEmoji: user.avatarEmoji,
-                ));
-              },
-              icon: const Icon(Icons.chat_bubble_outline, size: 16),
-              label: Text('btn_write'.tr),
-            ),
-          ),
-        ]),
-      ),
-    );
-  }
-
-  Widget _sheetRow(IconData icon, String label, String value) {
-    return Row(children: [
-      Icon(icon, size: 18, color: AppColors.textHint),
-      const SizedBox(width: 10),
-      Text('$label: ', style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
-      Expanded(child: Text(value,
-          style: const TextStyle(color: Colors.white, fontSize: 14))),
-    ]);
-  }
 }
 
 // ── Поиск друга по User ID ────────────────────────────────

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/constants/app_colors.dart';
 import '../../data/models/user_model.dart';
+import '../../data/repositories/supabase_repository.dart';
+import '../auth/auth_controller.dart';
 
 class CollectionScreen extends StatefulWidget {
   const CollectionScreen({super.key});
@@ -87,25 +89,56 @@ class _CollectionScreenState extends State<CollectionScreen>
   }
 
   Widget _buildMyCollection() {
-    final toys = [
-      {'name': 'Котик Мяу', 'series': 'Серия 1', 'num': '#0042', 'emoji': '🐱'},
-      {'name': 'Лягушонок', 'series': 'Серия 2', 'num': '#0117', 'emoji': '🐸'},
-    ];
-    final emptySlots = 2;
+    final auth = Get.find<AuthController>();
+    final myId = auth.currentUser.value?.id ?? '';
 
-    return GridView.builder(
-      padding: const EdgeInsets.all(12),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12,
-        childAspectRatio: 0.85,
-      ),
-      itemCount: toys.length + emptySlots,
-      itemBuilder: (_, i) {
-        if (i < toys.length) {
-          final toy = toys[i];
-          return _ToyCard(toy: toy);
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: SupabaseRepository.getUserToys(myId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
         }
-        return _EmptySlot();
+        final toys = snapshot.data ?? [];
+        if (toys.isEmpty) {
+          // Пустое состояние — без кнопки "добавить" (добавляется только в профиле "Я")
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('🧸', style: TextStyle(fontSize: 48)),
+                  const SizedBox(height: 16),
+                  Text('collection_empty_title'.tr,
+                      style: const TextStyle(color: Colors.white,
+                          fontSize: 16, fontWeight: FontWeight.w600),
+                      textAlign: TextAlign.center),
+                  const SizedBox(height: 8),
+                  Text('collection_empty_hint'.tr,
+                      style: const TextStyle(color: AppColors.textHint, fontSize: 13),
+                      textAlign: TextAlign.center),
+                ],
+              ),
+            ),
+          );
+        }
+        return GridView.builder(
+          padding: const EdgeInsets.all(12),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12,
+            childAspectRatio: 0.85,
+          ),
+          itemCount: toys.length,
+          itemBuilder: (_, i) {
+            final t = toys[i];
+            return _ToyCard(toy: {
+              'name': (t['name'] ?? 'Toy').toString(),
+              'series': (t['series'] ?? '').toString(),
+              'num': '#${(t['serial_number'] ?? '').toString()}',
+              'emoji': (t['emoji'] ?? '🧸').toString(),
+            });
+          },
+        );
       },
     );
   }
