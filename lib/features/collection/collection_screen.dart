@@ -107,7 +107,7 @@ class _CollectionScreenState extends State<CollectionScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text('🧸', style: TextStyle(fontSize: 48)),
+                  Text('🧸', style: TextStyle(fontSize: 48)),
                   const SizedBox(height: 16),
                   Text('collection_empty_title'.tr,
                       style: const TextStyle(color: Colors.white,

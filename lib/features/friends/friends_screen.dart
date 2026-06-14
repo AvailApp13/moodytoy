@@ -82,7 +82,7 @@ class FriendsScreen extends StatelessWidget {
                     const Icon(Icons.notifications_outlined,
                         size: 14, color: AppColors.error),
                     const SizedBox(width: 4),
-                    Text('Запросы · ${c.incomingRequests.length}',
+                    Text('${'friends_requests_pill'.tr} · ${c.incomingRequests.length}',
                         style: const TextStyle(
                             color: AppColors.error, fontSize: 12,
                             fontWeight: FontWeight.w600)),
@@ -106,7 +106,7 @@ class FriendsScreen extends StatelessWidget {
     padding: const EdgeInsets.only(top: 40),
     child: Center(
       child: Column(children: [
-        const Text('👋', style: TextStyle(fontSize: 48)),
+        Text('👋', style: TextStyle(fontSize: 48)),
         const SizedBox(height: 12),
         Text('friends_empty'.tr,
             style: Theme.of(context).textTheme.bodyMedium),

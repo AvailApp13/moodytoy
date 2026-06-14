@@ -83,7 +83,7 @@ class ProfileScreen extends StatelessWidget {
                   fontSize: 22, fontWeight: FontWeight.bold)),
           if (user.city != null || user.age != null)
             Text(
-              [if (user.city != null) user.city!, if (user.age != null) '${user.age} лет'].join(' · '),
+              [if (user.city != null) user.city!, if (user.age != null) '${user.age} ${'profile_years'.tr}'].join(' · '),
               style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
             ),
           GestureDetector(
@@ -138,7 +138,7 @@ class ProfileScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _infoRow(Icons.cake_outlined, 'profile_age'.tr, '${user.age ?? '?'} лет'),
+          _infoRow(Icons.cake_outlined, 'profile_age'.tr, '${user.age ?? '?'} ${'profile_years'.tr}'),
           const SizedBox(height: 8),
           GestureDetector(
             onTap: () => _editCity(ctx, auth, user),
@@ -154,7 +154,7 @@ class ProfileScreen extends StatelessWidget {
                   Icon(Icons.edit_note_outlined,
                       size: 16, color: AppColors.textHint),
                   SizedBox(width: 6),
-                  Text('О себе',
+                  Text('profile_bio'.tr,
                       style: TextStyle(color: AppColors.textHint, fontSize: 12)),
                 ]),
                 const SizedBox(height: 4),
@@ -483,7 +483,7 @@ class _SettingsScreenState extends State<_SettingsScreen> {
                 ? '${_auth.currentUser.value!.birthDate!.day}.'
                   '${_auth.currentUser.value!.birthDate!.month}.'
                   '${_auth.currentUser.value!.birthDate!.year}'
-                : 'Не указана',
+                : 'profile_birth_not_set'.tr,
             icon: Icons.cake_outlined,
             onTap: () => _editBirthDate(context),
           ),
@@ -518,7 +518,7 @@ class _SettingsScreenState extends State<_SettingsScreen> {
           ),
           const SizedBox(height: 16),
           Center(
-            child: Text('v1.0.11 (build 12)',
+            child: Text('v1.0.12 (build 13)',
                 style: TextStyle(color: AppColors.textHint.withOpacity(0.5), fontSize: 11)),
           ),
         ],

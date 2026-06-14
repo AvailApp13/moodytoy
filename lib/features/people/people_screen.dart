@@ -136,7 +136,7 @@ class _PeopleScreenState extends State<PeopleScreen> {
         return Center(child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text('😔', style: TextStyle(fontSize: 48)),
+            Text('😔', style: TextStyle(fontSize: 48)),
             const SizedBox(height: 12),
             Text('people_nobody'.tr, style: Theme.of(context).textTheme.bodyMedium),
           ],

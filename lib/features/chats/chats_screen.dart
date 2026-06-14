@@ -161,9 +161,9 @@ class _ChatsScreenState extends State<ChatsScreen>
         ctrl.loadPersonalChats();
         if (ctrl.personalChats.isEmpty) {
           return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            const Text('💬', style: TextStyle(fontSize: 48)),
+            Text('💬', style: TextStyle(fontSize: 48)),
             const SizedBox(height: 12),
-            Text('Добавьте друзей чтобы начать переписку',
+            Text('chats_add_friends'.tr,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium),
           ]));
@@ -216,7 +216,7 @@ class _ChatsScreenState extends State<ChatsScreen>
                       if (lastMsg != null)
                         Text(
                           lastMsg.imageBase64 != null
-                              ? (lastMsg.isMe ? 'Вы: 📷 Фото' : 'chats_photo'.tr)
+                              ? (lastMsg.isMe ? '${'chats_you_prefix'.tr}: 📷 ${'chats_photo_label'.tr}' : 'chats_photo'.tr)
                               : (lastMsg.isMe ? '${'chats_me_prefix'.tr}${lastMsg.text}' : lastMsg.text),
                           style: const TextStyle(
                               color: AppColors.textSecondary, fontSize: 12),
@@ -409,17 +409,17 @@ class _ChatPageState extends State<ChatPage> {
     return await Get.dialog<ImageSource>(
       AlertDialog(
         backgroundColor: AppColors.surface,
-        title: const Text('Отправить фото',
-            style: TextStyle(color: Colors.white)),
+        title: Text('chats_send_photo'.tr,
+            style: const TextStyle(color: Colors.white)),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           ListTile(
             leading: const Icon(Icons.camera_alt_outlined, color: Colors.white),
-            title: const Text('Камера', style: TextStyle(color: Colors.white)),
+            title: Text('chats_camera'.tr, style: const TextStyle(color: Colors.white)),
             onTap: () => Get.back(result: ImageSource.camera),
           ),
           ListTile(
             leading: const Icon(Icons.photo_library_outlined, color: Colors.white),
-            title: const Text('Галерея', style: TextStyle(color: Colors.white)),
+            title: Text('chats_gallery'.tr, style: const TextStyle(color: Colors.white)),
             onTap: () => Get.back(result: ImageSource.gallery),
           ),
         ]),
@@ -469,8 +469,8 @@ class _MessageBubbleState extends State<_MessageBubble> {
       // Показываем реальную причину для диагностики
       setState(() => _translating = false);
       Get.snackbar(
-        'Перевод не удался',
-        TranslationService.lastError ?? 'Неизвестная ошибка',
+        'translate_failed'.tr,
+        TranslationService.lastError ?? 'translate_unknown'.tr,
         backgroundColor: AppColors.error,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,

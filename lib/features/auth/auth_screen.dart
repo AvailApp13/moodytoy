@@ -50,9 +50,9 @@ class _AuthScreenState extends State<AuthScreen> {
               ),
               const SizedBox(height: 24),
               // Лого
-              const Text('🧸', style: TextStyle(fontSize: 64)),
+              Text('🧸', style: TextStyle(fontSize: 64)),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'MoodyToy',
                 style: TextStyle(
                   color: Colors.white,
@@ -190,7 +190,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              Text('v1.0.11 (build 12)',
+              Text('v1.0.12 (build 13)',
                   style: TextStyle(color: AppColors.textHint.withOpacity(0.4), fontSize: 11)),
               const SizedBox(height: 24),
             ],
