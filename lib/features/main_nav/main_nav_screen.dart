@@ -73,8 +73,22 @@ class _MainNavScreenState extends State<MainNavScreen> {
               label: 'tab_collection'.tr,
             ),
             BottomNavigationBarItem(
-              icon: const Icon(Icons.chat_bubble_outline),
-              activeIcon: const Icon(Icons.chat_bubble),
+              icon: GetBuilder<ChatsController>(
+                builder: (c) => Badge(
+                  isLabelVisible: c.unreadChatsCount > 0,
+                  label: Text('${c.unreadChatsCount}',
+                      style: const TextStyle(fontSize: 10)),
+                  child: const Icon(Icons.chat_bubble_outline),
+                ),
+              ),
+              activeIcon: GetBuilder<ChatsController>(
+                builder: (c) => Badge(
+                  isLabelVisible: c.unreadChatsCount > 0,
+                  label: Text('${c.unreadChatsCount}',
+                      style: const TextStyle(fontSize: 10)),
+                  child: const Icon(Icons.chat_bubble),
+                ),
+              ),
               label: 'tab_chats'.tr,
             ),
             BottomNavigationBarItem(

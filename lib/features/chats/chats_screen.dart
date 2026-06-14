@@ -21,6 +21,7 @@ class ChatsScreen extends StatefulWidget {
 class _ChatsScreenState extends State<ChatsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tab;
+  String _personalSearch = '';
   late ChatsController _ctrl;
 
   @override
@@ -80,6 +81,8 @@ class _ChatsScreenState extends State<ChatsScreen>
           final isActive = currentMood == mood;
           final messages = _ctrl.getMessages(mood.value);
           final lastMsg = messages.isNotEmpty ? messages.last : null;
+          final online = _ctrl.moodOnline[mood.value] ?? 0;
+          final unread = _ctrl.hasUnread(mood.value);
           return GestureDetector(
             onTap: () {
               auth.updateMood(mood);
@@ -117,6 +120,17 @@ class _ChatsScreenState extends State<ChatsScreen>
                       Text(mood.label, style: const TextStyle(
                           color: Colors.white, fontSize: 15,
                           fontWeight: FontWeight.w600)),
+                      if (online > 0) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          width: 6, height: 6,
+                          decoration: const BoxDecoration(
+                              color: AppColors.success, shape: BoxShape.circle),
+                        ),
+                        const SizedBox(width: 3),
+                        Text('$online', style: TextStyle(
+                            fontSize: 11, color: AppColors.success)),
+                      ],
                       if (isActive) ...[
                         const SizedBox(width: 6),
                         Container(
@@ -146,7 +160,14 @@ class _ChatsScreenState extends State<ChatsScreen>
                           style: TextStyle(color: AppColors.textHint, fontSize: 12)),
                   ],
                 )),
-                const Icon(Icons.chevron_right, color: AppColors.textHint, size: 20),
+                if (unread)
+                  Container(
+                    width: 10, height: 10,
+                    decoration: BoxDecoration(
+                        color: mood.color, shape: BoxShape.circle),
+                  )
+                else
+                  const Icon(Icons.chevron_right, color: AppColors.textHint, size: 20),
               ]),
             ),
           );
@@ -168,17 +189,51 @@ class _ChatsScreenState extends State<ChatsScreen>
                 style: Theme.of(context).textTheme.bodyMedium),
           ]));
         }
-        return ListView.separated(
-          padding: const EdgeInsets.all(12),
-          itemCount: ctrl.personalChats.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 8),
-          itemBuilder: (_, i) {
-            final friendId = ctrl.personalChats[i];
+        // Фильтр по имени друга
+        final q = _personalSearch.trim().toLowerCase();
+        final filtered = q.isEmpty
+            ? ctrl.personalChats.toList()
+            : ctrl.personalChats.where((fid) {
+                final f = ctrl.getFriendUser(fid);
+                return f != null && f.name.toLowerCase().contains(q);
+              }).toList();
+        return Column(children: [
+          // Поиск
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+            child: TextField(
+              onChanged: (v) => setState(() => _personalSearch = v),
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+              decoration: InputDecoration(
+                hintText: 'chats_search_hint'.tr,
+                hintStyle: const TextStyle(color: AppColors.textHint),
+                prefixIcon: const Icon(Icons.search, color: AppColors.textHint, size: 20),
+                filled: true,
+                fillColor: AppColors.card,
+                contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: filtered.isEmpty
+              ? Center(child: Text('chats_search_empty'.tr,
+                  style: TextStyle(color: AppColors.textHint)))
+              : ListView.separated(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: filtered.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemBuilder: (_, i) {
+                    final friendId = filtered[i];
             final friend = ctrl.getFriendUser(friendId);
             if (friend == null) return const SizedBox();
             final personalId = ctrl.personalChatId(friendId);
             final messages = ctrl.getMessages(personalId);
             final lastMsg = messages.isNotEmpty ? messages.last : null;
+            final unread = ctrl.hasUnread(personalId);
             return GestureDetector(
               onTap: () => Get.to(() => ChatPage(
                 chatId: personalId,
@@ -194,17 +249,30 @@ class _ChatsScreenState extends State<ChatsScreen>
                   border: Border.all(color: AppColors.border, width: 0.5),
                 ),
                 child: Row(children: [
-                  Container(
-                    width: 48, height: 48,
-                    decoration: BoxDecoration(
-                      color: friend.mood?.color.withOpacity(0.2) ?? AppColors.surfaceVariant,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                          color: friend.mood?.color ?? AppColors.border, width: 2),
+                  Stack(children: [
+                    Container(
+                      width: 48, height: 48,
+                      decoration: BoxDecoration(
+                        color: friend.mood?.color.withOpacity(0.2) ?? AppColors.surfaceVariant,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                            color: friend.mood?.color ?? AppColors.border, width: 2),
+                      ),
+                      child: Center(child: Text(friend.avatarEmoji ?? '👤',
+                          style: const TextStyle(fontSize: 22))),
                     ),
-                    child: Center(child: Text(friend.avatarEmoji ?? '👤',
-                        style: const TextStyle(fontSize: 22))),
-                  ),
+                    if (friend.isOnline) Positioned(
+                      right: 0, bottom: 0,
+                      child: Container(
+                        width: 14, height: 14,
+                        decoration: BoxDecoration(
+                          color: AppColors.success,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppColors.card, width: 2),
+                        ),
+                      ),
+                    ),
+                  ]),
                   const SizedBox(width: 12),
                   Expanded(child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -227,12 +295,32 @@ class _ChatsScreenState extends State<ChatsScreen>
                             style: TextStyle(color: AppColors.textHint, fontSize: 12)),
                     ],
                   )),
-                  const Icon(Icons.chevron_right, color: AppColors.textHint, size: 20),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (lastMsg != null)
+                        Text(
+                          '${lastMsg.time.hour.toString().padLeft(2, '0')}:${lastMsg.time.minute.toString().padLeft(2, '0')}',
+                          style: const TextStyle(color: AppColors.textHint, fontSize: 11),
+                        ),
+                      const SizedBox(height: 4),
+                      if (unread)
+                        Container(
+                          width: 10, height: 10,
+                          decoration: BoxDecoration(
+                              color: friend.mood?.color ?? AppColors.primary,
+                              shape: BoxShape.circle),
+                        ),
+                    ],
+                  ),
                 ]),
               ),
             );
           },
-        );
+        ),
+          ),
+        ]);
       },
     );
   }
@@ -267,6 +355,15 @@ class _ChatPageState extends State<ChatPage> {
   void initState() {
     super.initState();
     _ctrl = Get.find<ChatsController>();
+    // Отметить прочитанным при открытии и после загрузки сообщений
+    _ctrl.markRead(widget.chatId);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _ctrl.markRead(widget.chatId);
+    });
+    // Для общего чата — обновить счётчик онлайн
+    if (!widget.chatId.startsWith('personal_')) {
+      _ctrl.refreshMoodOnline();
+    }
   }
 
   @override
@@ -294,8 +391,27 @@ class _ChatPageState extends State<ChatPage> {
             )),
           ),
           const SizedBox(width: 8),
-          Text(widget.title,
-              style: const TextStyle(color: Colors.white, fontSize: 16)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(widget.title,
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
+                    overflow: TextOverflow.ellipsis),
+                // Для общих чатов — "N в сети"
+                if (!widget.chatId.startsWith('personal_'))
+                  Obx(() {
+                    final n = _ctrl.moodOnline[widget.chatId] ?? 0;
+                    return Text(
+                      '$n ${'chats_online_count'.tr}',
+                      style: TextStyle(
+                          color: AppColors.success, fontSize: 11),
+                    );
+                  }),
+              ],
+            ),
+          ),
         ]),
         elevation: 0,
       ),

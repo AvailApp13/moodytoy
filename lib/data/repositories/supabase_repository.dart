@@ -234,6 +234,23 @@ class SupabaseRepository {
   }
 
   // ── Поиск пользователя по User ID (логину) ────────────
+  // Сколько людей сейчас в этом настроении и онлайн (для общих чатов)
+  static Future<int> countOnlineByMood(String mood) async {
+    try {
+      final cutoff = DateTime.now()
+          .subtract(const Duration(minutes: 2))
+          .toIso8601String();
+      final res = await _client
+          .from('users')
+          .select('id')
+          .eq('mood', mood)
+          .gte('last_seen_at', cutoff);
+      return (res as List).length;
+    } catch (_) {
+      return 0;
+    }
+  }
+
   // Загрузка профиля по внутреннему UUID (для тапа в чате)
   static Future<UserModel?> getUserById(String id) async {
     try {

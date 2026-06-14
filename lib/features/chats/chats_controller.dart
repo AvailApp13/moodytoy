@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/services/supabase_service.dart';
@@ -45,6 +46,10 @@ class ChatsController extends GetxController {
   final Map<String, List<Message>> _cache = {};
   // Кэш профилей отправителей (для имён незнакомцев в общих чатах)
   final Map<String, UserModel> _profileCache = {};
+  // Счётчики "в сети" по настроению (общие чаты)
+  final moodOnline = <String, int>{}.obs;
+  // Время последнего прочтения чата (chatId → timestamp) для непрочитанных
+  final Map<String, DateTime> _lastRead = {};
   RealtimeChannel? _channel;
 
   SupabaseClient get _client => SupabaseService.client;
@@ -56,16 +61,80 @@ class ChatsController extends GetxController {
     return 'personal_${ids.join('_')}';
   }
 
+  // ── Непрочитанные ─────────────────────────────────────
+  Future<void> _loadLastRead() async {
+    final prefs = await SharedPreferences.getInstance();
+    for (final key in prefs.getKeys()) {
+      if (key.startsWith('lastread_')) {
+        final chatId = key.substring('lastread_'.length);
+        final ts = prefs.getString(key);
+        if (ts != null) {
+          final dt = DateTime.tryParse(ts);
+          if (dt != null) _lastRead[chatId] = dt;
+        }
+      }
+    }
+    update();
+  }
+
+  Future<void> markRead(String chatId) async {
+    final now = DateTime.now();
+    _lastRead[chatId] = now;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('lastread_$chatId', now.toIso8601String());
+    update();
+  }
+
+  // Есть ли непрочитанные в чате (последнее сообщение не от меня и позже прочтения)
+  bool hasUnread(String chatId) {
+    final msgs = _cache[chatId];
+    if (msgs == null || msgs.isEmpty) return false;
+    final last = msgs.last;
+    if (last.isMe) return false;
+    final read = _lastRead[chatId];
+    if (read == null) return true;
+    return last.time.isAfter(read);
+  }
+
+  // Сколько чатов с непрочитанными (для бейджа на вкладке)
+  int get unreadChatsCount {
+    int n = 0;
+    for (final mood in moodChats) {
+      if (hasUnread(mood.value)) n++;
+    }
+    for (final fid in personalChats) {
+      if (hasUnread(personalChatId(fid))) n++;
+    }
+    return n;
+  }
+
+  // ── Счётчики онлайн по настроению (общие чаты) ────────
+  Future<void> refreshMoodOnline() async {
+    for (final mood in moodChats) {
+      moodOnline[mood.value] =
+          await SupabaseRepository.countOnlineByMood(mood.value);
+    }
+    moodOnline.refresh();
+  }
+
   @override
   void onInit() {
     super.onInit();
     loadPersonalChats();
     _subscribeRealtime();
+    _loadLastRead();
+    refreshMoodOnline();
+    // Обновляем счётчики онлайн раз в 30 сек
+    _onlineTimer = Timer.periodic(
+        const Duration(seconds: 30), (_) => refreshMoodOnline());
   }
+
+  Timer? _onlineTimer;
 
   @override
   void onClose() {
     _channel?.unsubscribe();
+    _onlineTimer?.cancel();
     super.onClose();
   }
 
@@ -101,6 +170,7 @@ class ChatsController extends GetxController {
               if (!_cache[chatId]!.any((m) => m.id == msg.id)) {
                 _cache[chatId]!.add(msg);
                 update([chatId]);
+                update(); // обновить бейдж непрочитанных на вкладке
                 // Подгрузить имя отправителя если незнакомец
                 if (!msg.isMe && !_profileCache.containsKey(msg.senderId)) {
                   SupabaseRepository.getUserById(msg.senderId).then((u) {
