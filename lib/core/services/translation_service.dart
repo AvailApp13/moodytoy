@@ -60,14 +60,26 @@ class TranslationService {
   // Последняя ошибка перевода (для диагностики в UI)
   static String? lastError;
 
-  // ── Перевод сообщения в чате по запросу (на язык юзера, включая RU) ──
+  // Определяем язык текста (ru/en/zh) по символам
+  static String _detectLang(String text) {
+    if (RegExp(r'[\u4e00-\u9fff]').hasMatch(text)) return 'zh'; // иероглифы
+    if (RegExp(r'[\u0400-\u04FF]').hasMatch(text)) return 'ru'; // кириллица
+    return 'en';
+  }
+
+  // ── Перевод сообщения в чате по запросу (на язык юзера) ──
+  // 1) MyMemory (бесплатно, без ключа)  2) DeepSeek (запасной, если есть баланс)
   static Future<String?> translateMessage(String text) async {
     lastError = null;
     if (text.trim().isEmpty) return null;
-    final lang = _currentLang;
-    final cacheKey = 'msg_${text.hashCode}_$lang';
-    if (_memCache.containsKey(cacheKey)) return _memCache[cacheKey];
+    final target = _currentLang;
+    final source = _detectLang(text);
 
+    // Уже на языке пользователя — переводить нечего
+    if (source == target) return text;
+
+    final cacheKey = 'msg_${text.hashCode}_$target';
+    if (_memCache.containsKey(cacheKey)) return _memCache[cacheKey];
     final prefs = await _storage;
     final cached = prefs.getString('$_cachePrefix$cacheKey');
     if (cached != null) {
@@ -75,6 +87,74 @@ class TranslationService {
       return cached;
     }
 
+    // 1) MyMemory
+    final mm = await _translateMyMemory(text, source, target);
+    if (mm != null) {
+      _memCache[cacheKey] = mm;
+      await prefs.setString('$_cachePrefix$cacheKey', mm);
+      return mm;
+    }
+
+    // 2) DeepSeek (запасной — сработает только если пополнен баланс)
+    final ds = await _translateDeepSeek(text, target);
+    if (ds != null) {
+      _memCache[cacheKey] = ds;
+      await prefs.setString('$_cachePrefix$cacheKey', ds);
+      return ds;
+    }
+
+    return null; // lastError уже установлен
+  }
+
+  // ── MyMemory: бесплатный переводчик без ключа ──────────
+  static Future<String?> _translateMyMemory(
+      String text, String source, String target) async {
+    try {
+      final dio = Dio();
+      final response = await dio.get(
+        'https://api.mymemory.translated.net/get',
+        queryParameters: {
+          'q': text,
+          'langpair': '$source|$target',
+        },
+        options: Options(
+          sendTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 15),
+          validateStatus: (_) => true,
+        ),
+      );
+      if (response.statusCode != 200) {
+        lastError = 'MyMemory HTTP ${response.statusCode}';
+        return null;
+      }
+      final data = response.data is Map ? response.data : null;
+      final translated =
+          data?['responseData']?['translatedText']?.toString().trim();
+      // MyMemory кладёт предупреждения прямо в текст
+      if (translated == null || translated.isEmpty) {
+        lastError = 'MyMemory: пустой ответ';
+        return null;
+      }
+      final upper = translated.toUpperCase();
+      if (upper.contains('MYMEMORY WARNING') ||
+          upper.contains('QUOTA') ||
+          upper.contains('QUERY LENGTH LIMIT') ||
+          upper.contains('AVAILABLE FREE TRANSLATIONS')) {
+        lastError = 'MyMemory лимит: $translated';
+        return null;
+      }
+      return translated;
+    } on DioException catch (e) {
+      lastError = 'MyMemory сеть: ${e.type}';
+      return null;
+    } catch (e) {
+      lastError = 'MyMemory ошибка: $e';
+      return null;
+    }
+  }
+
+  // ── DeepSeek: запасной (нужен баланс) ──────────────────
+  static Future<String?> _translateDeepSeek(String text, String lang) async {
     final langName = lang == 'zh'
         ? 'Chinese (Simplified)'
         : lang == 'en' ? 'English' : 'Russian';
@@ -89,7 +169,7 @@ class TranslationService {
           },
           sendTimeout: const Duration(seconds: 10),
           receiveTimeout: const Duration(seconds: 20),
-          validateStatus: (_) => true, // не кидать исключение на 4xx/5xx
+          validateStatus: (_) => true,
         ),
         data: {
           'model': 'deepseek-chat',
@@ -106,29 +186,19 @@ class TranslationService {
           ],
         },
       );
-
-      // Диагностика статуса
       if (response.statusCode != 200) {
-        lastError = 'HTTP ${response.statusCode}: ${response.data.toString()}';
+        // Сохраняем ошибку DeepSeek только если MyMemory тоже не дал причину
+        lastError ??= 'DeepSeek HTTP ${response.statusCode}';
         return null;
       }
-
       final result =
           response.data['choices']?[0]?['message']?['content']?.toString().trim();
       if (result != null && result.isNotEmpty) {
-        _memCache[cacheKey] = result;
-        await prefs.setString('$_cachePrefix$cacheKey', result);
+        lastError = null;
         return result;
       }
-      lastError = 'Пустой ответ: ${response.data.toString()}';
-      return null;
-    } on DioException catch (e) {
-      lastError = 'Сеть: ${e.type} ${e.message ?? ''}'.trim();
-      return null;
-    } catch (e) {
-      lastError = 'Ошибка: $e';
-      return null;
-    }
+    } catch (_) {}
+    return null;
   }
 
   static Future<String?> _translateViaApi(String text, String targetLang) async {
