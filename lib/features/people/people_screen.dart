@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import '../../core/utils/coordinate_utils.dart';
 import 'package:get/get.dart';
 import '../../core/constants/app_colors.dart';
 import '../../data/models/user_model.dart';
@@ -156,61 +159,109 @@ class _PeopleScreenState extends State<PeopleScreen> {
   }
 
   Widget _buildMap() {
-    return Stack(children: [
-      Container(color: const Color(0xFF1A1A2E)),
-      CustomPaint(size: Size.infinite, painter: _GridPainter()),
-      Center(child: _PulsingDot()),
-      Obx(() => Stack(
-        children: _ctrl.filteredUsers.take(8).toList().asMap().entries
-            .map((e) => _buildMapMarker(e.value, e.key)).toList(),
-      )),
-      Positioned(
-        bottom: 16, left: 0, right: 0,
-        child: Center(child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: AppColors.surface, borderRadius: BorderRadius.circular(20)),
-          child: Text('map_label'.tr,
-              style: const TextStyle(color: Colors.white, fontSize: 13)),
-        )),
-      ),
-    ]);
-  }
+    return Obx(() {
+      final me = _ctrl.myLocation.value;
+      // Центр карты — моя позиция (GCJ-02) или дефолт (Пекин)
+      final center = me != null
+          ? CoordUtils.wgs84ToGcj02(me.latitude, me.longitude)
+          : const LatLng(39.9042, 116.4074);
 
-  Widget _buildMapMarker(UserModel user, int index) {
-    final positions = [
-      const Offset(0.2, 0.25), const Offset(0.7, 0.3),
-      const Offset(0.15, 0.55), const Offset(0.75, 0.6),
-      const Offset(0.5, 0.15), const Offset(0.85, 0.45),
-      const Offset(0.3, 0.7), const Offset(0.6, 0.75),
-    ];
-    final pos = positions[index % positions.length];
-    return Positioned(
-      left: MediaQuery.of(context).size.width * pos.dx - 24,
-      top: MediaQuery.of(context).size.height * 0.55 * pos.dy,
-      child: GestureDetector(
-        onTap: () => _showUserCard(user),
-        child: Column(children: [
-          Container(
-            width: 48, height: 48,
-            decoration: BoxDecoration(
-              color: user.mood?.color.withOpacity(0.3) ?? AppColors.surface,
-              shape: BoxShape.circle,
-              border: Border.all(color: user.mood?.color ?? AppColors.primary, width: 2),
+      // Маркеры пользователей (с координатами), конвертируем в GCJ-02
+      final userMarkers = _ctrl.filteredUsers
+          .where((u) => u.lat != null && u.lng != null)
+          .map((u) {
+        final p = CoordUtils.wgs84ToGcj02(u.lat!, u.lng!);
+        return Marker(
+          point: p,
+          width: 60, height: 64,
+          child: GestureDetector(
+            onTap: () => _showUserCard(u),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Container(
+                width: 44, height: 44,
+                decoration: BoxDecoration(
+                  color: u.mood?.color.withOpacity(0.3) ?? AppColors.surface,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                      color: u.mood?.color ?? AppColors.primary, width: 2),
+                ),
+                child: Center(child: Text(u.avatarEmoji ?? '👤',
+                    style: const TextStyle(fontSize: 20))),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(6)),
+                child: Text(u.name,
+                    maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 9, color: Colors.white)),
+              ),
+            ]),
+          ),
+        );
+      }).toList();
+
+      return Stack(children: [
+        FlutterMap(
+          options: MapOptions(
+            initialCenter: center,
+            initialZoom: 14,
+            minZoom: 3, maxZoom: 18,
+          ),
+          children: [
+            TileLayer(
+              urlTemplate:
+                  'https://wprd0{s}.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&lang=zh_cn&size=1&scl=1&style=7',
+              subdomains: const ['1', '2', '3', '4'],
+              userAgentPackageName: 'com.moodytoy.app',
+              // Тёмный фильтр под дизайн приложения
+              tileBuilder: (context, tileWidget, tile) => ColorFiltered(
+                colorFilter: const ColorFilter.matrix([
+                  -0.2, -0.7, -0.1, 0, 255,
+                  -0.2, -0.7, -0.1, 0, 255,
+                  -0.2, -0.7, -0.1, 0, 255,
+                  0, 0, 0, 1, 0,
+                ]),
+                child: tileWidget,
+              ),
             ),
-            child: Center(child: Text(user.avatarEmoji ?? '👤',
-                style: const TextStyle(fontSize: 22))),
+            MarkerLayer(markers: [
+              // Моя позиция — синяя точка
+              if (me != null)
+                Marker(
+                  point: center,
+                  width: 24, height: 24,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 3),
+                      boxShadow: [BoxShadow(
+                          color: AppColors.primary.withOpacity(0.5),
+                          blurRadius: 8, spreadRadius: 2)],
+                    ),
+                  ),
+                ),
+              ...userMarkers,
+            ]),
+          ],
+        ),
+        // Подсказка если нет геолокации
+        if (me == null)
+          Positioned(
+            bottom: 16, left: 0, right: 0,
+            child: Center(child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(20)),
+              child: Text('map_no_location'.tr,
+                  style: const TextStyle(color: Colors.white, fontSize: 13)),
+            )),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: AppColors.surface, borderRadius: BorderRadius.circular(8)),
-            child: TranslatedText(user.name,
-                style: const TextStyle(fontSize: 10, color: Colors.white)),
-          ),
-        ]),
-      ),
-    );
+      ]);
+    });
   }
 
   void _showUserCard(UserModel user) {

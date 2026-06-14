@@ -1,4 +1,6 @@
 import 'package:get/get.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
 import '../../core/services/language_service.dart';
 import '../../data/models/user_model.dart';
 import '../../data/repositories/supabase_repository.dart';
@@ -10,11 +12,52 @@ class PeopleController extends GetxController {
   final selectedMood = Rxn<Mood>();
   final isListMode = true.obs;
   final isLoading = false.obs;
+  final myLocation = Rxn<LatLng>(); // WGS-84
 
   @override
   void onInit() {
     super.onInit();
     loadUsers();
+    initLocation();
+  }
+
+  // ── Геолокация ────────────────────────────────────────
+  Future<void> initLocation() async {
+    try {
+      LocationPermission perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.denied ||
+          perm == LocationPermission.deniedForever) {
+        return;
+      }
+      final pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+      myLocation.value = LatLng(pos.latitude, pos.longitude);
+
+      final auth = Get.find<AuthController>();
+      final myId = auth.currentUser.value?.id ?? '';
+      if (myId.isNotEmpty) {
+        await SupabaseRepository.updateLocation(
+            myId, pos.latitude, pos.longitude);
+      }
+      _recalcDistances();
+    } catch (_) {}
+  }
+
+  void _recalcDistances() {
+    final me = myLocation.value;
+    if (me == null) return;
+    const distance = Distance();
+    for (final u in allUsers) {
+      if (u.lat != null && u.lng != null) {
+        u.distanceMeters =
+            distance.as(LengthUnit.Meter, me, LatLng(u.lat!, u.lng!));
+      }
+    }
+    _applyFilter();
   }
 
   Future<void> loadUsers() async {
@@ -27,6 +70,7 @@ class PeopleController extends GetxController {
     } catch (_) {
       allUsers.value = [];
     }
+    _recalcDistances();
     _applyFilter();
     isLoading.value = false;
   }

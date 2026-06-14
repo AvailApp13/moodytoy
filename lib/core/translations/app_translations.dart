@@ -95,6 +95,7 @@ class AppTranslations extends Translations {
       'chats_online_count':  'в сети',
       'chats_typing':        'печатает...',
       'friends_filter_hint': 'Поиск среди друзей',
+      'map_no_location':     'Включите геолокацию чтобы видеть карту',
       'chats_search_hint':   'Поиск по имени',
       'chats_search_empty':  'Ничего не найдено',
       // Settings
@@ -253,6 +254,7 @@ class AppTranslations extends Translations {
       'chats_online_count':  'online',
       'chats_typing':        'typing...',
       'friends_filter_hint': 'Search your friends',
+      'map_no_location':     'Enable location to see the map',
       'chats_search_hint':   'Search by name',
       'chats_search_empty':  'Nothing found',
       'settings_title':    'Settings',
@@ -407,6 +409,7 @@ class AppTranslations extends Translations {
       'chats_online_count':  '在线',
       'chats_typing':        '正在输入...',
       'friends_filter_hint': '搜索好友',
+      'map_no_location':     '开启定位以查看地图',
       'chats_search_hint':   '按名字搜索',
       'chats_search_empty':  '未找到',
       'settings_title':    '设置',

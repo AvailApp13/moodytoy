@@ -234,6 +234,18 @@ class SupabaseRepository {
   }
 
   // ── Поиск пользователя по User ID (логину) ────────────
+  // Сохранить геопозицию (WGS-84) в профиль
+  static Future<void> updateLocation(
+      String userId, double lat, double lng) async {
+    try {
+      await _client.from('users').update({
+        'lat': lat,
+        'lng': lng,
+        'location_updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', userId);
+    } catch (_) {}
+  }
+
   // Сколько людей сейчас в этом настроении и онлайн (для общих чатов)
   static Future<int> countOnlineByMood(String mood) async {
     try {
